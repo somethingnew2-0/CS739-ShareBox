@@ -6,7 +6,6 @@ import (
 	"math/rand"
 
 	"github.com/somethingnew2-0/go-erasure"
-	"github.com/somethingnew2-0/upnp"
 )
 
 func corrupt(source, errList []byte, shardLength int) []byte {
@@ -45,11 +44,4 @@ func main() {
 		log.Fatal("Source was not sucessfully recovered with 4 errors")
 	}
 
-	mapping := new(upnp.Upnp)
-	if err := mapping.AddPortMapping(55789, 55789, "TCP"); err == nil {
-		log.Println("Added port mapping")
-		mapping.Reclaim()
-	} else {
-		log.Println("Couldn't add port mapping")
-	}
 }
