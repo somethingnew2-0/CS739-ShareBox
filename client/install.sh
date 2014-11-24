@@ -2,4 +2,4 @@
 export GOPATH=$PWD
 
 chmod +x hooks/pre-commit
-ln -s ../../hooks/pre-commit .git/hooks/
+ln -s ../../client/hooks/pre-commit ../.git/hooks/
