@@ -1,0 +1,8 @@
+*~
+.project
+.pydevproject
+# python enviroment & compiled files
+venv/
+*.pyc
+*/*.pyc
+uploads/
