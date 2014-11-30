@@ -1,3 +1,3 @@
 #!/bin/bash
-cd thrift
-thrift -out ../src/thrift -r --gen go tutorial.thrift
+cd src/client/thrift
+thrift -out . -r --gen go tutorial.thrift

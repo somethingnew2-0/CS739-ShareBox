@@ -5,6 +5,9 @@ import (
 	"log"
 	"math/rand"
 
+	"client/settings"
+	"client/state"
+
 	"github.com/somethingnew2-0/go-erasure"
 )
 
@@ -20,7 +23,10 @@ func corrupt(source, errList []byte, shardLength int) []byte {
 }
 
 func main() {
-	stateMachine := NewStateMachine(ClientId)
+	stateMachine := state.NewStateMachine(settings.ClientId)
+
+	stateMachine.Add(state.Init{})
+	stateMachine.Add(state.Watch{})
 	stateMachine.Run()
 
 	m := 12

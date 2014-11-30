@@ -1,4 +1,4 @@
-package main
+package state
 
 import (
 	"sync/atomic"
@@ -26,7 +26,7 @@ func NewStateMachine(clientId string) *StateMachine {
 	}
 }
 
-func (sm *StateMachine) Run() {
+func (sm StateMachine) Run() {
 	for i := 0; i < minimumWorkers; i++ {
 		sm.SpawnWorker()
 	}
@@ -40,11 +40,15 @@ func (sm *StateMachine) Run() {
 	}
 }
 
-func (sm *StateMachine) SpawnWorker() {
+func (sm StateMachine) Add(s State) {
+	sm.states <- s
+}
+
+func (sm StateMachine) SpawnWorker() {
 	go func() {
 		atomic.AddUint32(&sm.workers, 1)
 		for state := range sm.states {
-			state.Run(sm)
+			state.Run(&sm)
 
 			// Retire any workers over the threshold, once free
 			workers := atomic.LoadUint32(&sm.workers)
