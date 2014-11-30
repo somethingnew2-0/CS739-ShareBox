@@ -20,6 +20,9 @@ func corrupt(source, errList []byte, shardLength int) []byte {
 }
 
 func main() {
+	stateMachine := NewStateMachine(ClientId)
+	stateMachine.Run()
+
 	m := 12
 	k := 8
 	shardLength := 16       // Length of a shard

@@ -9,18 +9,20 @@ const minimumWorkers int = 16
 const maxStates int = 256
 
 type StateMachine struct {
-	states  chan State
-	workers uint32
+	ClientId string
+	states   chan State
+	workers  uint32
 }
 
 type State interface {
 	Run(sm *StateMachine)
 }
 
-func NewStateMachine() *StateMachine {
+func NewStateMachine(clientId string) *StateMachine {
 	return &StateMachine{
-		states:  make(chan State, maxStates),
-		workers: 0,
+		ClientId: clientId,
+		states:   make(chan State, maxStates),
+		workers:  0,
 	}
 }
 
