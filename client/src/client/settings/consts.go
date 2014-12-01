@@ -1,12 +1,14 @@
 package settings
 
-const ServerAddress = "http://localhost:8000"
-const ConfigFile = "config.json"
+const (
+	ServerAddress = "http://localhost:8000"
+	ConfigFile    = "config.json"
 
-const MinimumWorkers = 16
-const MaxStates = 256
+	MinimumWorkers = 16
+	MaxStates      = 256
 
-const M = 12
-const K = 8
-const ShardLength = 8192
-const BlockSize = K * ShardLength
+	M           = 12
+	K           = 8
+	ShardLength = 8192
+	BlockSize   = K * ShardLength
+)
