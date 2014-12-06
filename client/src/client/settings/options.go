@@ -12,7 +12,7 @@ type Options struct {
 	UserId   string `json:"userid" short:"u" long:"uid" description:"User Id unique to the user running using the client"`
 }
 
-func (o *Options) LoadFromJSON() {
+func (o *Options) Load() {
 	if _, err := os.Stat(ConfigFile); err == nil {
 		if f, err := os.Open(ConfigFile); err == nil {
 			config, _ := ioutil.ReadAll(f)
@@ -28,4 +28,9 @@ func (o *Options) LoadFromJSON() {
 			}
 		}
 	}
+}
+
+func (o *Options) Save() {
+	config, _ := json.Marshal(o)
+	ioutil.WriteFile(ConfigFile, config, 0666)
 }
