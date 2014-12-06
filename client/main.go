@@ -11,13 +11,14 @@ import (
 )
 
 var (
-	opts *settings.Options
+	opts = &settings.Options{}
 	args []string
 )
 
 func init() {
 	var err error
-	args, err = flags.Parse(&opts)
+
+	args, err = flags.Parse(opts)
 	if err != nil {
 		log.Fatalf("Error parsing options: &v\n", err)
 	}
