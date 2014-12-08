@@ -34,8 +34,10 @@ func (o *Options) Load() {
 }
 
 func (o *Options) HashPassword() {
-	o.Hash, _ = bcrypt.GenerateFromPassword([]byte(o.Password), 10)
-	o.Password = ""
+	if o.Password != "" {
+		o.Hash, _ = bcrypt.GenerateFromPassword([]byte(o.Password), 10)
+		o.Password = ""
+	}
 }
 
 func (o *Options) Save() {

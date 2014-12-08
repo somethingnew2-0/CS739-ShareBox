@@ -26,7 +26,9 @@ type State interface {
 }
 
 func NewStateMachine(opts *settings.Options) *StateMachine {
+	opts.HashPassword()
 	cipher, _ := aes.NewCipher(opts.Hash)
+
 	return &StateMachine{
 		Options:     opts,
 		ErasureCode: erasure.NewCode(settings.M, settings.K, settings.BlockSize),

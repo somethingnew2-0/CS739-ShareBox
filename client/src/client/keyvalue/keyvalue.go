@@ -31,7 +31,7 @@ type KeyValue struct {
 }
 
 func Init(logDir string) (int, *KeyValue) {
-	log.Println("KeyValue starting")
+	log.Println("KeyValue starting at ", logDir)
 
 	server := &KeyValue{
 		LogDir:         logDir,
@@ -44,7 +44,7 @@ func Init(logDir string) (int, *KeyValue) {
 	os.MkdirAll(logDir, 0777)
 
 	server.recover()
-	log.Println("KeyValue fully recovered")
+	log.Println("KeyValue fully recovered at", logDir)
 
 	go server.set()
 
@@ -59,14 +59,14 @@ func Init(logDir string) (int, *KeyValue) {
 		log.Fatal(http.ListenAndServe(":8080", nil))
 	}()*/
 
-	log.Println("KeyValue accepting requests")
+	log.Println("KeyValue accepting requests at ", logDir)
 	return 0, server
 }
 
 func (s *KeyValue) recover() {
 	entries, err := ioutil.ReadDir(s.LogDir)
 	if err != nil {
-		log.Printf("Error reading log directory, unable to recover: %v", err)
+		log.Printf("Error reading log directory, unable to recover: %v\n", err)
 		return
 	}
 
