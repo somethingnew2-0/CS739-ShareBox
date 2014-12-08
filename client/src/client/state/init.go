@@ -1,11 +1,8 @@
 package state
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -29,6 +26,12 @@ func (i Init) Run(sm *StateMachine) {
 		sm.Options.ClientId = userResp["clientId"].(string)
 
 		sm.Options.Save()
+
+		// TODO: Actually get user's available disk space (instead of just 1GB)
+		resp, err = util.Post(fmt.Sprintf("%s/client/%s/init", settings.ServerAddress), url.Values{"space": {string(1 << 30)}})
+		if err != nil {
+			log.Fatal("Couldn't init client with server", err)
+		}
 
 		err = filepath.Walk(sm.Options.Dir, func(path string, info os.FileInfo, err error) error {
 			if !info.IsDir() {
