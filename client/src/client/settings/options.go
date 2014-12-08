@@ -33,9 +33,15 @@ func (o *Options) Load() {
 	}
 }
 
+func (o *Options) HashPassword() {
+	if o.Password != "" {
+		o.Hash, _ = bcrypt.GenerateFromPassword([]byte(o.Password), 10)
+		o.Password = ""
+	}
+}
+
 func (o *Options) Save() {
-	o.Hash, _ = bcrypt.GenerateFromPassword([]byte(o.Password), 10)
-	o.Password = ""
+	o.HashPassword()
 
 	config, _ := json.Marshal(o)
 	ioutil.WriteFile(ConfigFile, config, 0666)

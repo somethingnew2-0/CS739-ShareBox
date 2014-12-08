@@ -1,6 +1,8 @@
 package state
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"sync/atomic"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 type StateMachine struct {
 	Options     *settings.Options
 	ErasureCode *erasure.Code
+	Cipher      cipher.Block
 	Recovered   bool // If user already existed, recover files
 	Initialized bool // If user didn't exist, upload initial files before watching
 	states      chan State
@@ -23,9 +26,13 @@ type State interface {
 }
 
 func NewStateMachine(opts *settings.Options) *StateMachine {
+	opts.HashPassword()
+	cipher, _ := aes.NewCipher(opts.Hash)
+
 	return &StateMachine{
 		Options:     opts,
 		ErasureCode: erasure.NewCode(settings.M, settings.K, settings.BlockSize),
+		Cipher:      cipher,
 		states:      make(chan State, settings.MaxStates),
 		workers:     0,
 	}
