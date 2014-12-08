@@ -14,6 +14,13 @@ urlpatterns = patterns('',
     ## Client actions
     url(r'^client/(.*)/status$', getClientInitStatus),
     url(r'^client/(.*)/init$', initClient),
+    url(r'^client/(.*)/recover$', recoverClient),
     url(r'^client/(.*)/file/add$', addFile),
+    url(r'^client/(.*)/file/remove$', removeFile),
+    url(r'^client/(.*)/file/update$', updateFile),
     url(r'^file/(.*)/commit$', commitFile),
+    url(r'^file/(.*)/delete$', deleteFile),
+    url(r'^file/(.*)/download$', downloadFile),
+    url(r'^shard/(.*)/validate$', validateShard),
+    url(r'^shard/(.*)/invalidate$', invalidateShard),
 )

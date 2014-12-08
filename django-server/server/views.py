@@ -46,6 +46,20 @@ def getClientInitStatus(request, clientId):
         'systemReserved': client['systemReservedSpace']
     }
 
+@require_safe
+@json_view
+def recoverClient(request, clientId):
+    client = consulRead('Client', clientId)
+    if client['initStatus'] != 'recover': #TODO: Add security checks
+        return {
+            'allowed' : False
+        }
+    user = consulRead('User', client['userId'])
+    return {
+        'allowed' : True,
+        'fileList' : user['files']
+    }
+
 @csrf_exempt
 @require_POST
 @json_view
@@ -134,9 +148,18 @@ def addFile(request, clientId):
 @csrf_exempt
 @require_POST
 @json_view
+def updateFile(request, clientId):
+    return {
+        'allowed' : False
+    }
+
+@csrf_exempt
+@require_POST
+@json_view
 def commitFile(request, fileId):
     newFile = consulRead('File', fileId)
-    if newFile['status'] != 'added':
+    data = json.loads(request.body)
+    if newFile['status'] != 'added' or newFile['status'] != 'updated' or newFile['clientId'] != data['clientId']:
         return {
             'error' : 403,
             'message' : "File not available for commit",
@@ -171,6 +194,156 @@ def batchCommitReservations(reservations):
         shardClient['systemSpace'] = int(shardClient['systemSpace']) - reservations[clientId]
         consulWrite('Client', shardClient)
 
+@csrf_exempt
+@require_POST
+@json_view
+def validateShard(request, shardId):
+    shard = consulRead('Shard',shardId)
+    data = json.loads(request.body)
+    receiverId = data['receiverId']
+    if shard['clientId'] == receiverId :
+        return {
+            'accept' : True
+        }
+    else:
+        return {
+            'accept' : False
+        }
+
+@csrf_exempt
+@require_POST
+@json_view
+def removeFile(request, clientId):
+    client = consulRead('Client', clientId)
+    data = json.loads(request.body)
+    newFile = consulRead('File', data['id'])
+
+    if newFile['clientId'] != clientId or newFile['status'] != 'committed':
+        return {
+            'allowed' : False
+        }
+
+    shardCount = 0
+    clients = []
+    for blockId in newFile['blocks']:
+        block = consulRead('Block', blockId)
+        shardCount += int(block['shardCount'])
+        for shardId in block['shards']:
+            shard = consulRead('Shard', shardId)
+            shardClient = consulRead('Client', shard['clientId'])
+            clients.append({ 
+                'id' : shard['id'],
+                'blockId': shard['blockId'],
+                'offset' : shard['offset'],
+                'IP' : client['ip']
+            })
+
+    newFile['status'] = 'removed'
+    consulWrite('File', newFile)
+
+    return {
+        'allowed' : True,
+        'shards' : shardCount,
+        'clients' : clients
+    }
+
+@csrf_exempt
+@require_POST
+@json_view
+def downloadFile(request, fileId):
+    dlFile = consulRead('File', fileId)
+    data = json.loads(request.body)
+    client = consulRead('Client', data['clientId'])
+
+    if dlFile['clientId'] != client['id'] or dlFile['status'] != 'committed':
+        return {
+            'allowed' : False
+        }
+
+    shardCount = 0
+    clients = []
+    for blockId in dlFile['blocks']:
+        block = consulRead('Block', blockId)
+        shardCount += int(block['shardCount'])
+        for shardId in block['shards']:
+            shard = consulRead('Shard', shardId)
+            shardClient = consulRead('Client', shard['clientId'])
+            clients.append({ 
+                'id' : shard['id'],
+                'blockId': shard['blockId'],
+                'offset' : shard['offset'],
+                'IP' : client['ip']
+            })
+
+    return {
+        'allowed' : True,
+        'shards' : shardCount,
+        'clients' : clients
+    }
+
+@csrf_exempt
+@require_POST
+@json_view
+def deleteFile(request, fileId):
+    delFile = consulRead('File', fileId)
+    data = json.loads(request.body)
+    if delFile['status'] != 'removed' or delFile['clientId'] != data['clientId']:
+        return {
+            'error' : 403,
+            'message' : "File not available for delete",
+            'success' : False
+        }
+
+    shardClients = {}
+    for blockId in delFile['blocks']:
+        block = consulRead('Block', blockId)
+        for shardId in block['shards']:
+            shard = consulRead('Shard', shardId)
+            if shardClients.get(shard['clientId'], None) is None:
+                shardClients[shard['clientId']] = int(shard['size'])
+            else:
+                shardClients[shard['clientId']] = int(shardClients[shard['clientId']]) + int(shard['size']) 
+            consulDelete('Shard', shardId)
+        consulDelete('Block', blockId)
+
+    fileClient = consulRead('Client', delFile['clientId'])
+    fileClient['userSpace'] = int(fileClient['userSpace']) + int(delFile['size'])
+    consulWrite('Client', fileClient)
+    user = consulRead('File', delFile['userId'])
+    user['files'].remove(delFile['id'])
+    consulWrite('User', user)
+    batchFreeSystemSpace(shardClients)
+    consulDelete('File', delFile['id'])
+
+    return {
+        'success' : True
+    }
+
+def batchFreeSystemSpace(shardClients):
+    for clientId in shardClients.keys():
+        shardClient = consulRead('Client', clientId)
+        shardClient['systemSpace'] = int(shardClient['systemSpace']) + shardClients[clientId]
+        consulWrite('Client', shardClient)
+
+@csrf_exempt
+@require_POST
+@json_view
+def invalidateShard(request, shardId):
+    shard = consulRead('Shard',shardId)
+    data = json.loads(request.body)
+    receiverId = data['receiverId']
+    ownerId = data['ownerId']
+    userFile = consulRead('File', shard['fileId'])
+    actualOwnerId = userFile['clientId']
+    if shard['clientId'] == receiverId and actualOwnerId == ownerId and userFile['status'] == 'removed':
+        return {
+            'delete' : True
+        }
+    else:
+        return {
+            'delete' : False
+        }
+
 # Helpers
 def addBlock(blockInfo, newFile):
     block = Block()
@@ -195,6 +368,7 @@ def addShard(shardInfo, block, shardIndex, clients):
     shard.size = int(shardInfo["size"])
     shard.clientId = clients[shardIndex]['id']
     shard.blockId = block.id
+    shard.fileId = block.fileId
     shard.status = 'online'
     consulWrite('Shard', shard)
     block.shards.append(shard.id)
@@ -262,5 +436,12 @@ def consulRead(root, id):
     s = getConsulateSession()
     try:
         return s.kv[root + '/' + id]
+    except AttributeError:
+        raise Http404
+
+def consulDelete(root, id):
+    s = getConsulateSession()
+    try:
+        del s.kv[root + '/' + id]
     except AttributeError:
         raise Http404
