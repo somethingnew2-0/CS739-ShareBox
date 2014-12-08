@@ -1,6 +1,11 @@
 package state
 
+import (
+	"client/keyvalue"
+)
+
 type Encrypt struct {
+	File      *keyvalue.File
 	Plaintext []byte
 }
 

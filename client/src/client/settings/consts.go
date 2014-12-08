@@ -4,7 +4,7 @@ const (
 	ServerAddress = "http://localhost:8000"
 	ConfigFile    = "config.json"
 
-	MinimumWorkers = 16
+	MinimumWorkers = 8
 	MaxStates      = 256
 
 	M           = 12

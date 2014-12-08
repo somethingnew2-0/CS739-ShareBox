@@ -2,11 +2,14 @@ package state
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
 
+	"client/keyvalue"
 	"client/settings"
 	"client/util"
 )
@@ -35,7 +38,16 @@ func (i Init) Run(sm *StateMachine) {
 
 		err = filepath.Walk(sm.Options.Dir, func(path string, info os.FileInfo, err error) error {
 			if !info.IsDir() {
+				encrypt := &Encrypt{}
 
+				blocks := math.Ceil(float64(info.Size()) / float64(settings.BlockSize))
+				// TODO: Do I add the file hash here?
+				encrypt.File = &keyvalue.File{Name: path, Size: info.Size()}
+				if f, err := os.Open(path); err == nil {
+					zeroBytes := (int64(blocks) * settings.BlockSize) - info.Size()
+					data, _ := ioutil.ReadAll(f)
+					encrypt.Plaintext = append(data, make([]byte, zeroBytes)...)
+				}
 			}
 			return nil
 		})
