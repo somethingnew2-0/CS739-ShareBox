@@ -33,6 +33,7 @@ class Shard(object):
     self.offset = None
     self.clientId = None
     self.blockId = None
+    self.fileId = None
     self.status = None
 
 class Client(object):
