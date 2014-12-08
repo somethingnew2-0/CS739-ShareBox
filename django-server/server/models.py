@@ -14,6 +14,8 @@ class File(object):
     self.size = None
     self.status = None
     self.blocks = None
+    self.clientId = None
+    self.userId = None
 
 class Block(object):
   def __init__(self):
@@ -44,4 +46,6 @@ class Client(object):
     self.systemQuota = None
     self.userSpace = None
     self.systemSpace = None
+    self.userReservedSpace = None
+    self.systemReservedSpace = None
     self.shards = None
