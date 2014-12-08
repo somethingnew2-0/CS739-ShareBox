@@ -5,7 +5,23 @@ import (
 	"errors"
 )
 
+type Shard struct {
+	Id     string `json:"id"`
+	Offset int64  `json:"offset"`
+	Size   int64  `json:"size"`
+}
+
+type Block struct {
+	Id          string  `json:"id"`
+	BlockOffset int     `json:"blockOffset"`
+	Shards      []Shard `json:"shards"`
+}
+
 type File struct {
+	Id     string  `json:"id"`
+	Name   string  `json:"name"`
+	Size   int64   `json:"size"`
+	Blocks []Block `json:"blocks"`
 }
 
 func InitFileKV() *KeyValue {
