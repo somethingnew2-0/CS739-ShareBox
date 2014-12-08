@@ -10,7 +10,7 @@ import (
 )
 
 type StateMachine struct {
-	ClientId    string
+	Options     *settings.Options
 	ErasureCode *erasure.Code
 	Recovered   bool // If user already existed, recover files
 	Initialized bool // If user didn't exist, upload initial files before watching
@@ -22,10 +22,10 @@ type State interface {
 	Run(sm *StateMachine)
 }
 
-func NewStateMachine(clientId string) *StateMachine {
+func NewStateMachine(opts *settings.Options) *StateMachine {
 	return &StateMachine{
-		ClientId:    clientId,
-		ErasureCode: erasure.NewCode(settings.M, settings.K, settings.Size),
+		Options:     opts,
+		ErasureCode: erasure.NewCode(settings.M, settings.K, settings.BlockSize),
 		states:      make(chan State, settings.MaxStates),
 		workers:     0,
 	}

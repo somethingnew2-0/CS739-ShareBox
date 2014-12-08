@@ -2,8 +2,6 @@ package state
 
 import (
 	"log"
-	"os"
-	"path/filepath"
 
 	"gopkg.in/fsnotify.v1"
 )
@@ -17,7 +15,7 @@ func (w Watch) Run(sm *StateMachine) {
 	}
 	defer watcher.Close()
 
-	err = watcher.Add(filepath.Join(os.TempDir(), "foo"))
+	err = watcher.Add(sm.Options.Dir)
 	if err != nil {
 		log.Fatal(err)
 	}
