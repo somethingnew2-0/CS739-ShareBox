@@ -15,4 +15,5 @@ urlpatterns = patterns('',
     url(r'^client/(.*)/status$', getClientInitStatus),
     url(r'^client/(.*)/init$', initClient),
     url(r'^client/(.*)/file/add$', addFile),
+    url(r'^file/(.*)/commit$', commitFile),
 )
