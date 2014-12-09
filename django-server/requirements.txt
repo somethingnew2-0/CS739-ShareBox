@@ -5,6 +5,7 @@ backports.ssl-match-hostname==3.4.0.2
 certifi==14.05.14
 consulate==0.2.0
 django-filter==0.8
+django-jsonview==0.4.3
 django-tastypie==0.12.1
 python-dateutil==2.2
 python-mimeparse==0.1.4

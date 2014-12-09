@@ -1,0 +1,109 @@
+http://localhost:8000/user/new
+
+{"user": {"files": null, "id": "108272a4df314fb1901abc4eb9be51d7", "clientId": "304f602c566f4875ae9bd16d8c74fc0b"}}
+
+{"user": {"files": null, "id": "2a1d048e2ca04f40ae4486d7d3a353fb", "clientId": "a66d591bf5ea47969856079f17e2b27e"}}
+
+{"user": {"files": null, "id": "bc5a7b46a94b438baa4278c20612fb76", "clientId": "d1592a51d593414f84674538ac49a113"}}
+==============
+http://localhost:8000/client/c94f77b43df54e90832d258fa6237928/status
+
+{"new": true, "recovery": false}
+==============
+http://localhost:8000/client/c94f77b43df54e90832d258fa6237928/init
+{"IP": "10.95.1.0", "space": "1024000"}
+
+{"usable": 341333, "system": 682667}
+==============
+http://localhost:8000/client/c94f77b43df54e90832d258fa6237928/status
+
+{"new": false, "recovery": true}
+==============
+http://localhost:8000/client/c94f77b43df54e90832d258fa6237928/file/add
+
+{
+"name" : "README.md",
+"size" : "250",
+"blocks" : [
+{
+"blockOffset" : "0",
+"shards" : [{"offset" : "0", "size": "10", "hash" : ""}, {"offset" : "11", "size": "10"}, {"offset" : "21", "size": "10"}, {"offset" : "31", "size": "10"}, {"offset" : "41", "size": "10"}]
+"hash" : <block hash>
+}
+]
+}
+
+{
+shards: 5
+blocks: [1]
+0:  "69afdaf771084433baa2bbfbfa3cc266"
+-
+id: "3bd8c34e39f449ec9e095964607a28be"
+clients: [5]
+0:  {
+IP: "10.95.1.3"
+blockId: "69afdaf771084433baa2bbfbfa3cc266"
+id: "79ac0bf270b24fa89b13f59a1362fbde"
+offset: "0"
+}-
+1:  {
+IP: "10.95.1.3"
+blockId: "69afdaf771084433baa2bbfbfa3cc266"
+id: "77a1217d02f84665a88c314cce79e84e"
+offset: "11"
+}-
+2:  {
+IP: "10.95.1.3"
+blockId: "69afdaf771084433baa2bbfbfa3cc266"
+id: "1b40733001b74459adba3fa724e8b3ef"
+offset: "21"
+}-
+3:  {
+IP: "10.95.1.3"
+blockId: "69afdaf771084433baa2bbfbfa3cc266"
+id: "dda621a0341449639ba69decbbb60d4d"
+offset: "31"
+}-
+4:  {
+IP: "10.95.1.3"
+blockId: "69afdaf771084433baa2bbfbfa3cc266"
+id: "f33d394b85634423a3148beb6a3a4651"
+offset: "41"
+}-
+-
+allowed: true
+}
+
+==============
+http://localhost:8000/file/c94f77b43df54e90832d258fa6237928/commit
+
+
+==============
+http://localhost:8000/shard/f33d394b85634423a3148beb6a3a4651/validate
+=================
+{
+recovery: true
+system: 682567
+usuable: 340983
+systemReserved: 350
+new: false
+userReserved: 950
+}
+
+{
+recovery: true
+system: 682467
+usuable: 341333
+systemReserved: 650
+new: false
+userReserved: 550
+}
+
+{
+recovery: true
+system: 682617
+usuable: 341283
+systemReserved: 450
+new: false
+userReserved: 350
+}

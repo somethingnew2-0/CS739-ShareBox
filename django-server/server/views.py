@@ -228,7 +228,7 @@ def updateBlock(block, blockInfo, updateFile):
     updatedBlockInfo = {
         'id' : [block['id']],
         'shardCount' : len(offlineShards + onlineShards + newShards),
-        'clients' = []
+        'clients' : []
     }
 
     for shard in newShards+offlineShards+onlineShards :
@@ -251,7 +251,7 @@ def shardsByStatus(shards):
         assert (shard['status'] == 'offline' or shard['status'] == 'online')
         if shard['status'] == 'offline':
             offlines.append(shard)
-        else shard['status'] == 'online':
+        else :
             onlines.append(shard)
 
     return (offlines, onlines)
