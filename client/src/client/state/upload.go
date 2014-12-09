@@ -57,6 +57,7 @@ func (u Upload) Run(sm *StateMachine) {
 				}
 			}
 		}
+		sm.Files.SetFile(file.Name, file)
 	} else {
 		log.Println("File upload not allowed")
 		return
