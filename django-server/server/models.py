@@ -12,6 +12,7 @@ class File(object):
     self.id = uuid.uuid4().hex
     self.name = None
     self.size = None
+    self.deltasize = 0 #This is used during file updates
     self.status = None
     self.blocks = None
     self.clientId = None
