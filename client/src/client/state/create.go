@@ -2,6 +2,7 @@ package state
 
 import (
 	"io/ioutil"
+	"log"
 	"math"
 	"os"
 
@@ -23,8 +24,13 @@ func (c Create) Run(sm *StateMachine) {
 	encrypt.File = &keyvalue.File{Name: c.Path, EncodedSize: int64(blocks) * settings.BlockSize, UnencodedSize: c.Info.Size()}
 	if f, err := os.Open(c.Path); err == nil {
 		zeroBytes := (int64(blocks) * settings.BlockSize) - c.Info.Size()
-		data, _ := ioutil.ReadAll(f)
+		data, err := ioutil.ReadAll(f)
+		if err != nil {
+			log.Println("Cannot read file: ", c.Path, err)
+		}
 		encrypt.Plaintext = append(data, make([]byte, zeroBytes)...)
+	} else {
+		log.Println("Cannot open file: ", c.Path, err)
 	}
 	sm.Add(encrypt)
 }
