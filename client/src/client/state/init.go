@@ -53,7 +53,7 @@ func (i Init) Run(sm *StateMachine) {
 				blocks := math.Ceil(float64(info.Size()) / float64(settings.BlockSize))
 
 				// Use encoded file size
-				encrypt.File = &keyvalue.File{Name: path, Size: int64(blocks) * settings.BlockSize}
+				encrypt.File = &keyvalue.File{Name: path, EncodedSize: int64(blocks) * settings.BlockSize, UnencodedSize: info.Size()}
 				if f, err := os.Open(path); err == nil {
 					zeroBytes := (int64(blocks) * settings.BlockSize) - info.Size()
 					data, _ := ioutil.ReadAll(f)

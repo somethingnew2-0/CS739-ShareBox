@@ -20,11 +20,12 @@ type Block struct {
 }
 
 type File struct {
-	Id     string  `json:"id"`
-	Name   string  `json:"name"`
-	Hash   string  `json:"hash"`
-	Size   int64   `json:"size"`
-	Blocks []Block `json:"blocks"`
+	Id            string  `json:"id"`
+	Name          string  `json:"name"`
+	Hash          string  `json:"hash"`
+	EncodedSize   int64   `json:"encoded_size"`
+	UnencodedSize int64   `json:"unencoded_size"`
+	Blocks        []Block `json:"blocks"`
 }
 
 func InitFileKV() *KeyValue {

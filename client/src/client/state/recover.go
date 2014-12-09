@@ -29,7 +29,8 @@ func (r Recover) Run(sm *StateMachine) {
 		return
 	}
 	if resp["allowed"].(bool) {
-		file.Size = resp["size"].(int64)
+		file.EncodedSize = resp["size"].(int64)
+		file.UnencodedSize = resp["actualSize"].(int64)
 
 		blockIds := resp["blocks"].([]string)
 		for _, blockId := range blockIds {
