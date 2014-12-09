@@ -33,9 +33,15 @@ func (w Watch) Run(sm *StateMachine) {
 				}
 				sm.Add(&Create{Path: event.Name, Info: info})
 			case fsnotify.Write:
+				// TODO: This could be a race condition here
+				sm.Add(&Remove{Path: event.Name})
+				sm.Add(&Create{Path: event.Name})
 			case fsnotify.Remove:
 				sm.Add(&Remove{Path: event.Name})
 			case fsnotify.Rename:
+				// TODO: This could be a race condition here
+				sm.Add(&Remove{Path: event.Name})
+				sm.Add(&Create{Path: event.Name})
 				log.Println("Rename file: ", event.Name)
 			}
 		case err := <-watcher.Errors:
