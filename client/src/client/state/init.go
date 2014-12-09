@@ -17,7 +17,7 @@ func (i Init) Run(sm *StateMachine) {
 	sm.Options.Load()
 	if sm.Options.ClientId == "" || sm.Options.UserId == "" {
 		sm.Options.HashPassword()
-		resp, err := util.Post("user/new", map[string]string{"username": sm.Options.Username, "password": string(sm.Options.Hash)})
+		resp, err := util.Post("user/new", map[string]string{"username": sm.Options.Username, "passwordHash": string(sm.Options.Hash)})
 		if err != nil {
 			log.Fatal("Couldn't connect and create new user with server: ", err)
 		}
