@@ -1,8 +1,10 @@
 package settings
 
 const (
+	ConsulAddress = "docker:8500"
 	ServerAddress = "http://localhost:8000"
-	ConfigFile    = "config.json"
+
+	ConfigFile = "config.json"
 
 	ClientTLS  = false
 	ClientPort = 12345

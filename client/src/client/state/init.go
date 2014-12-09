@@ -77,12 +77,7 @@ func (i Init) Run(sm *StateMachine) {
 				sm.Add(Recover{File: &keyvalue.File{Id: file["id"], Name: file["name"], Hash: file["hash"]}})
 			}
 		}
-		// TODO: Recover files
-
-	} else {
-		sm.Add(Watch{})
 	}
-
-	// TODO: Connect to consul and report status
-
+	sm.Add(Watch{})
+	sm.Add(Health{})
 }
