@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"client/keyvalue"
 	"client/settings"
 	"client/thrift/replica"
 
@@ -43,7 +44,6 @@ func (r Replica) Run(sm *StateMachine) {
 
 	fmt.Println("Starting the simple server... on ", addr)
 	server.Serve()
-
 }
 
 type ReplicaHandler struct {
@@ -55,7 +55,15 @@ func (rh ReplicaHandler) Ping() error {
 }
 
 func (rh ReplicaHandler) Add(r *replica.Replica) error {
-
+	replica := &keyvalue.Replica{
+		ShardHash:   r.ShardHash,
+		ShardOffset: r.ShardOffset,
+		ShardId:     r.ShardId,
+		BlockId:     r.BlockId,
+		FileId:      r.FileId,
+		ClientId:    r.ClientId,
+	}
+	rh.StateMachine.Replicas.SetReplica(r.ShardId, replica)
 	return nil
 }
 
