@@ -53,10 +53,12 @@ func (u Upload) Run(sm *StateMachine) {
 					shard := block.Shards[offset]
 					shard.Id = client["id"]
 					shard.IP = net.ParseIP(client["IP"])
+
 					break
 				}
 			}
 		}
+
 		sm.Files.SetFile(file.Name, file)
 	} else {
 		log.Println("File upload not allowed")

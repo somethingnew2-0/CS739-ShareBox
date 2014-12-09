@@ -4,6 +4,8 @@ const (
 	ServerAddress = "http://localhost:8000"
 	ConfigFile    = "config.json"
 
+	ClientPort = 12345
+
 	MinimumWorkers = 8
 	MaxStates      = 256
 
