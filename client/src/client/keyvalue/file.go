@@ -3,16 +3,20 @@ package keyvalue
 import (
 	"encoding/json"
 	"errors"
+	"net"
 )
 
 type Shard struct {
 	Id     string `json:"id"`
+	Hash   string `json:"hash"`
 	Offset int64  `json:"offset"`
 	Size   int64  `json:"size"`
+	IP     net.IP `json:"ip"`
 }
 
 type Block struct {
 	Id          string  `json:"id"`
+	Hash        string  `json:"hash"`
 	BlockOffset int     `json:"blockOffset"`
 	Shards      []Shard `json:"shards"`
 }
@@ -20,6 +24,7 @@ type Block struct {
 type File struct {
 	Id     string  `json:"id"`
 	Name   string  `json:"name"`
+	Hash   string  `json:"hash"`
 	Size   int64   `json:"size"`
 	Blocks []Block `json:"blocks"`
 }
