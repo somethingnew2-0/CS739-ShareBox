@@ -2,7 +2,6 @@ package state
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -22,13 +21,7 @@ type Upload struct {
 }
 
 func (u Upload) Run(sm *StateMachine) {
-	fileJson, err := json.Marshal(u.File)
-	if err != nil {
-		log.Println("Error json encoding file", err)
-		return
-	}
-
-	resp, err := util.Post(fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), url.Values{"Request": {string(fileJson)}})
+	resp, err := util.Post(fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), u.File)
 	if err != nil {
 		log.Println("Error adding file", err)
 		return

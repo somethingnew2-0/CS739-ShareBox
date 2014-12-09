@@ -18,7 +18,7 @@ func (i Init) Run(sm *StateMachine) {
 	sm.Options.Load()
 	if sm.Options.ClientId == "" || sm.Options.UserId == "" {
 		sm.Options.HashPassword()
-		resp, err := util.Post("user/new", url.Values{"username": {}, "password": {string(sm.Options.Hash)}})
+		resp, err := util.PostForm("user/new", url.Values{"username": {}, "password": {string(sm.Options.Hash)}})
 		if err != nil {
 			log.Fatal("Couldn't connect and create new user with server: ", err)
 		}
@@ -29,7 +29,7 @@ func (i Init) Run(sm *StateMachine) {
 		sm.Options.Save()
 
 		// TODO: Actually get user's available disk space (instead of just 1GB)
-		resp, err = util.Post(fmt.Sprintf("client/%s/init", sm.Options.ClientId), url.Values{"space": {string(1 << 30)}})
+		resp, err = util.PostForm(fmt.Sprintf("client/%s/init", sm.Options.ClientId), url.Values{"space": {string(1 << 30)}})
 		if err != nil {
 			log.Fatal("Couldn't init client with server: ", err)
 		}
