@@ -22,7 +22,7 @@ type Recover struct {
 
 func (r Recover) Run(sm *StateMachine) {
 	file := r.File
-	resp, err := util.Post(fmt.Sprintf("file/%s/download", file.Id), map[string]string{"clientId": sm.Options.ClientId})
+	resp, err := util.Post(sm.Options, fmt.Sprintf("file/%s/download", file.Id), map[string]string{"clientId": sm.Options.ClientId})
 	if err != nil {
 		log.Println("Unable to connect to server to recover a file: ", err)
 		return

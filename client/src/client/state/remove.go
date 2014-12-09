@@ -19,13 +19,13 @@ func (r Remove) Run(sm *StateMachine) {
 	file, err := sm.Files.GetFile(r.Path)
 	var resp map[string]interface{}
 	if err == nil {
-		resp, err = util.Post(fmt.Sprintf("client/%s/file/remove", sm.Options.ClientId), map[string]string{"name": r.Path})
+		resp, err = util.Post(sm.Options, fmt.Sprintf("client/%s/file/remove", sm.Options.ClientId), map[string]string{"name": r.Path})
 		if err != nil {
 			log.Println("Error removing file", err)
 			return
 		}
 	} else {
-		resp, err = util.Post(fmt.Sprintf("client/%s/file/remove", sm.Options.ClientId), map[string]string{"id": file.Id, "name": r.Path})
+		resp, err = util.Post(sm.Options, fmt.Sprintf("client/%s/file/remove", sm.Options.ClientId), map[string]string{"id": file.Id, "name": r.Path})
 		if err != nil {
 			log.Println("Error removing file", err)
 			return
@@ -55,7 +55,7 @@ func (r Remove) Run(sm *StateMachine) {
 		}
 
 		if file != nil {
-			resp, err = util.Post(fmt.Sprintf("file/%s/delete", file.Id), map[string]string{"clientId": sm.Options.ClientId})
+			resp, err = util.Post(sm.Options, fmt.Sprintf("file/%s/delete", file.Id), map[string]string{"clientId": sm.Options.ClientId})
 			if err != nil {
 				log.Println("Error deleting file", err)
 				return

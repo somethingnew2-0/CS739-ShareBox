@@ -62,7 +62,7 @@ func (rh ReplicaHandler) Ping() error {
 }
 
 func (rh ReplicaHandler) Add(r *replica.Replica) error {
-	resp, err := util.Post(fmt.Sprintf("shard/%s/validate", r.ShardId), map[string]string{"recieverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
+	resp, err := util.Post(rh.StateMachine.Options, fmt.Sprintf("shard/%s/validate", r.ShardId), map[string]string{"recieverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (rh ReplicaHandler) Add(r *replica.Replica) error {
 }
 
 func (rh ReplicaHandler) Modify(r *replica.Replica) error {
-	resp, err := util.Post(fmt.Sprintf("shard/%s/validate", r.ShardId), map[string]string{"recieverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
+	resp, err := util.Post(rh.StateMachine.Options, fmt.Sprintf("shard/%s/validate", r.ShardId), map[string]string{"recieverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func (rh ReplicaHandler) Remove(shardId string) error {
 		return err
 	}
 
-	resp, err := util.Post(fmt.Sprintf("block/%s/invalidate", r.ShardId), map[string]string{"recieverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
+	resp, err := util.Post(rh.StateMachine.Options, fmt.Sprintf("block/%s/invalidate", r.ShardId), map[string]string{"recieverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
 	if err != nil {
 		return err
 	}

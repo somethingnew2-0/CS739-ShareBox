@@ -10,11 +10,21 @@ import (
 	"client/settings"
 )
 
-func Get(address string) (map[string]interface{}, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/%s", settings.ServerAddress, address))
+func Get(o *settings.Options, address string) (map[string]interface{}, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s", settings.ServerAddress, address), nil)
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("USERID", o.UserId)
+	req.Header.Set("AUTH", o.AuthToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	defer resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
 	respJson, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -27,7 +37,7 @@ func Get(address string) (map[string]interface{}, error) {
 	return respObj, nil
 }
 
-func Post(address string, values interface{}) (map[string]interface{}, error) {
+func Post(o *settings.Options, address string, values interface{}) (map[string]interface{}, error) {
 	jsonStr, err := json.Marshal(values)
 	if err != nil {
 		return nil, err
@@ -38,6 +48,8 @@ func Post(address string, values interface{}) (map[string]interface{}, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("USERID", o.UserId)
+	req.Header.Set("AUTH", o.AuthToken)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	defer resp.Body.Close()
