@@ -9,14 +9,13 @@ type Shard struct {
 	Id     string `json:"id"`
 	Hash   string `json:"hash"`
 	Offset int64  `json:"offset"`
-	Size   int64  `json:"size"`
 	IP     string `json:"ip"`
 }
 
 type Block struct {
 	Id          string  `json:"id"`
 	Hash        string  `json:"hash"`
-	BlockOffset int     `json:"blockOffset"`
+	BlockOffset int64   `json:"blockOffset"`
 	Shards      []Shard `json:"shards"`
 }
 

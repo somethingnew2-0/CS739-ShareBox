@@ -2,13 +2,16 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"client/settings"
 )
 
 func Get(address string) (map[string]interface{}, error) {
-	resp, err := http.Get(address)
+	resp, err := http.Get(fmt.Sprintf("%s/%s", settings.ServerAddress, address))
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +28,7 @@ func Get(address string) (map[string]interface{}, error) {
 }
 
 func Post(address string, values url.Values) (map[string]interface{}, error) {
-	resp, err := http.PostForm(address, values)
+	resp, err := http.PostForm(fmt.Sprintf("%s/%s", settings.ServerAddress, address), values)
 	if err != nil {
 		return nil, err
 	}

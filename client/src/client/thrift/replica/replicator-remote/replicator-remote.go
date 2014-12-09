@@ -24,6 +24,7 @@ func Usage() {
 	fmt.Fprintln(os.Stderr, "  void add(Replica r)")
 	fmt.Fprintln(os.Stderr, "  void modify(Replica r)")
 	fmt.Fprintln(os.Stderr, "  void remove(Replica r)")
+	fmt.Fprintln(os.Stderr, "  Replica download(string hash)")
 	fmt.Fprintln(os.Stderr)
 	os.Exit(0)
 }
@@ -131,19 +132,19 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Add requires 1 args")
 			flag.Usage()
 		}
-		arg18 := flag.Arg(1)
-		mbTrans19 := thrift.NewTMemoryBufferLen(len(arg18))
-		defer mbTrans19.Close()
-		_, err20 := mbTrans19.WriteString(arg18)
-		if err20 != nil {
+		arg22 := flag.Arg(1)
+		mbTrans23 := thrift.NewTMemoryBufferLen(len(arg22))
+		defer mbTrans23.Close()
+		_, err24 := mbTrans23.WriteString(arg22)
+		if err24 != nil {
 			Usage()
 			return
 		}
-		factory21 := thrift.NewTSimpleJSONProtocolFactory()
-		jsProt22 := factory21.GetProtocol(mbTrans19)
+		factory25 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt26 := factory25.GetProtocol(mbTrans23)
 		argvalue0 := replica.NewReplica()
-		err23 := argvalue0.Read(jsProt22)
-		if err23 != nil {
+		err27 := argvalue0.Read(jsProt26)
+		if err27 != nil {
 			Usage()
 			return
 		}
@@ -156,19 +157,19 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Modify requires 1 args")
 			flag.Usage()
 		}
-		arg24 := flag.Arg(1)
-		mbTrans25 := thrift.NewTMemoryBufferLen(len(arg24))
-		defer mbTrans25.Close()
-		_, err26 := mbTrans25.WriteString(arg24)
-		if err26 != nil {
+		arg28 := flag.Arg(1)
+		mbTrans29 := thrift.NewTMemoryBufferLen(len(arg28))
+		defer mbTrans29.Close()
+		_, err30 := mbTrans29.WriteString(arg28)
+		if err30 != nil {
 			Usage()
 			return
 		}
-		factory27 := thrift.NewTSimpleJSONProtocolFactory()
-		jsProt28 := factory27.GetProtocol(mbTrans25)
+		factory31 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt32 := factory31.GetProtocol(mbTrans29)
 		argvalue0 := replica.NewReplica()
-		err29 := argvalue0.Read(jsProt28)
-		if err29 != nil {
+		err33 := argvalue0.Read(jsProt32)
+		if err33 != nil {
 			Usage()
 			return
 		}
@@ -181,24 +182,34 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Remove requires 1 args")
 			flag.Usage()
 		}
-		arg30 := flag.Arg(1)
-		mbTrans31 := thrift.NewTMemoryBufferLen(len(arg30))
-		defer mbTrans31.Close()
-		_, err32 := mbTrans31.WriteString(arg30)
-		if err32 != nil {
+		arg34 := flag.Arg(1)
+		mbTrans35 := thrift.NewTMemoryBufferLen(len(arg34))
+		defer mbTrans35.Close()
+		_, err36 := mbTrans35.WriteString(arg34)
+		if err36 != nil {
 			Usage()
 			return
 		}
-		factory33 := thrift.NewTSimpleJSONProtocolFactory()
-		jsProt34 := factory33.GetProtocol(mbTrans31)
+		factory37 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt38 := factory37.GetProtocol(mbTrans35)
 		argvalue0 := replica.NewReplica()
-		err35 := argvalue0.Read(jsProt34)
-		if err35 != nil {
+		err39 := argvalue0.Read(jsProt38)
+		if err39 != nil {
 			Usage()
 			return
 		}
 		value0 := argvalue0
 		fmt.Print(client.Remove(value0))
+		fmt.Print("\n")
+		break
+	case "download":
+		if flag.NArg()-1 != 1 {
+			fmt.Fprintln(os.Stderr, "Download requires 1 args")
+			flag.Usage()
+		}
+		argvalue0 := flag.Arg(1)
+		value0 := argvalue0
+		fmt.Print(client.Download(value0))
 		fmt.Print("\n")
 		break
 	case "":

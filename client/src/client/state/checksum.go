@@ -23,7 +23,7 @@ func (c Checksum) Run(sm *StateMachine) {
 
 		file.Blocks = append(file.Blocks, keyvalue.Block{
 			Hash:        string(blockHash.Sum(nil)),
-			BlockOffset: settings.BlockSize * i})
+			BlockOffset: int64(settings.BlockSize * i)})
 
 		for s := 0; s < settings.M; s++ {
 			shard := block[s*settings.ShardLength : (s+1)*settings.ShardLength]

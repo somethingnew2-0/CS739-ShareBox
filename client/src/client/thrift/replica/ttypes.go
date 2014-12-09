@@ -20,9 +20,10 @@ type Replica struct {
 	Shard       []byte `thrift:"shard,1"`
 	ShardHash   string `thrift:"shardHash,2"`
 	ShardOffset int32  `thrift:"shardOffset,3"`
-	BlockId     string `thrift:"blockId,4"`
-	FileId      string `thrift:"fileId,5"`
-	ClientId    string `thrift:"clientId,6"`
+	ShardId     string `thrift:"shardId,4"`
+	BlockId     string `thrift:"blockId,5"`
+	FileId      string `thrift:"fileId,6"`
+	ClientId    string `thrift:"clientId,7"`
 }
 
 func NewReplica() *Replica {
@@ -64,6 +65,10 @@ func (p *Replica) Read(iprot thrift.TProtocol) error {
 			}
 		case 6:
 			if err := p.readField6(iprot); err != nil {
+				return err
+			}
+		case 7:
+			if err := p.readField7(iprot); err != nil {
 				return err
 			}
 		default:
@@ -112,7 +117,7 @@ func (p *Replica) readField4(iprot thrift.TProtocol) error {
 	if v, err := iprot.ReadString(); err != nil {
 		return fmt.Errorf("error reading field 4: %s")
 	} else {
-		p.BlockId = v
+		p.ShardId = v
 	}
 	return nil
 }
@@ -121,7 +126,7 @@ func (p *Replica) readField5(iprot thrift.TProtocol) error {
 	if v, err := iprot.ReadString(); err != nil {
 		return fmt.Errorf("error reading field 5: %s")
 	} else {
-		p.FileId = v
+		p.BlockId = v
 	}
 	return nil
 }
@@ -129,6 +134,15 @@ func (p *Replica) readField5(iprot thrift.TProtocol) error {
 func (p *Replica) readField6(iprot thrift.TProtocol) error {
 	if v, err := iprot.ReadString(); err != nil {
 		return fmt.Errorf("error reading field 6: %s")
+	} else {
+		p.FileId = v
+	}
+	return nil
+}
+
+func (p *Replica) readField7(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadString(); err != nil {
+		return fmt.Errorf("error reading field 7: %s")
 	} else {
 		p.ClientId = v
 	}
@@ -155,6 +169,9 @@ func (p *Replica) Write(oprot thrift.TProtocol) error {
 		return err
 	}
 	if err := p.writeField6(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField7(oprot); err != nil {
 		return err
 	}
 	if err := oprot.WriteFieldStop(); err != nil {
@@ -208,40 +225,53 @@ func (p *Replica) writeField3(oprot thrift.TProtocol) (err error) {
 }
 
 func (p *Replica) writeField4(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("blockId", thrift.STRING, 4); err != nil {
-		return fmt.Errorf("%T write field begin error 4:blockId: %s", p, err)
+	if err := oprot.WriteFieldBegin("shardId", thrift.STRING, 4); err != nil {
+		return fmt.Errorf("%T write field begin error 4:shardId: %s", p, err)
 	}
-	if err := oprot.WriteString(string(p.BlockId)); err != nil {
-		return fmt.Errorf("%T.blockId (4) field write error: %s", p)
+	if err := oprot.WriteString(string(p.ShardId)); err != nil {
+		return fmt.Errorf("%T.shardId (4) field write error: %s", p)
 	}
 	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 4:blockId: %s", p, err)
+		return fmt.Errorf("%T write field end error 4:shardId: %s", p, err)
 	}
 	return err
 }
 
 func (p *Replica) writeField5(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("fileId", thrift.STRING, 5); err != nil {
-		return fmt.Errorf("%T write field begin error 5:fileId: %s", p, err)
+	if err := oprot.WriteFieldBegin("blockId", thrift.STRING, 5); err != nil {
+		return fmt.Errorf("%T write field begin error 5:blockId: %s", p, err)
 	}
-	if err := oprot.WriteString(string(p.FileId)); err != nil {
-		return fmt.Errorf("%T.fileId (5) field write error: %s", p)
+	if err := oprot.WriteString(string(p.BlockId)); err != nil {
+		return fmt.Errorf("%T.blockId (5) field write error: %s", p)
 	}
 	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 5:fileId: %s", p, err)
+		return fmt.Errorf("%T write field end error 5:blockId: %s", p, err)
 	}
 	return err
 }
 
 func (p *Replica) writeField6(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("clientId", thrift.STRING, 6); err != nil {
-		return fmt.Errorf("%T write field begin error 6:clientId: %s", p, err)
+	if err := oprot.WriteFieldBegin("fileId", thrift.STRING, 6); err != nil {
+		return fmt.Errorf("%T write field begin error 6:fileId: %s", p, err)
 	}
-	if err := oprot.WriteString(string(p.ClientId)); err != nil {
-		return fmt.Errorf("%T.clientId (6) field write error: %s", p)
+	if err := oprot.WriteString(string(p.FileId)); err != nil {
+		return fmt.Errorf("%T.fileId (6) field write error: %s", p)
 	}
 	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 6:clientId: %s", p, err)
+		return fmt.Errorf("%T write field end error 6:fileId: %s", p, err)
+	}
+	return err
+}
+
+func (p *Replica) writeField7(oprot thrift.TProtocol) (err error) {
+	if err := oprot.WriteFieldBegin("clientId", thrift.STRING, 7); err != nil {
+		return fmt.Errorf("%T write field begin error 7:clientId: %s", p, err)
+	}
+	if err := oprot.WriteString(string(p.ClientId)); err != nil {
+		return fmt.Errorf("%T.clientId (7) field write error: %s", p)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return fmt.Errorf("%T write field end error 7:clientId: %s", p, err)
 	}
 	return err
 }

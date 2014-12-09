@@ -25,6 +25,9 @@ type Replicator interface {
 	// Parameters:
 	//  - R
 	Remove(r *Replica) (iv *InvalidOperation, err error)
+	// Parameters:
+	//  - Hash
+	Download(hash string) (r *Replica, iv *InvalidOperation, err error)
 }
 
 type ReplicatorClient struct {
@@ -291,6 +294,68 @@ func (p *ReplicatorClient) recvRemove() (iv *InvalidOperation, err error) {
 	return
 }
 
+// Parameters:
+//  - Hash
+func (p *ReplicatorClient) Download(hash string) (r *Replica, iv *InvalidOperation, err error) {
+	if err = p.sendDownload(hash); err != nil {
+		return
+	}
+	return p.recvDownload()
+}
+
+func (p *ReplicatorClient) sendDownload(hash string) (err error) {
+	oprot := p.OutputProtocol
+	if oprot == nil {
+		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
+		p.OutputProtocol = oprot
+	}
+	p.SeqId++
+	oprot.WriteMessageBegin("download", thrift.CALL, p.SeqId)
+	args16 := NewDownloadArgs()
+	args16.Hash = hash
+	err = args16.Write(oprot)
+	oprot.WriteMessageEnd()
+	oprot.Flush()
+	return
+}
+
+func (p *ReplicatorClient) recvDownload() (value *Replica, iv *InvalidOperation, err error) {
+	iprot := p.InputProtocol
+	if iprot == nil {
+		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
+		p.InputProtocol = iprot
+	}
+	_, mTypeId, seqId, err := iprot.ReadMessageBegin()
+	if err != nil {
+		return
+	}
+	if mTypeId == thrift.EXCEPTION {
+		error18 := thrift.NewTApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
+		var error19 error
+		error19, err = error18.Read(iprot)
+		if err != nil {
+			return
+		}
+		if err = iprot.ReadMessageEnd(); err != nil {
+			return
+		}
+		err = error19
+		return
+	}
+	if p.SeqId != seqId {
+		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "ping failed: out of sequence response")
+		return
+	}
+	result17 := NewDownloadResult()
+	err = result17.Read(iprot)
+	iprot.ReadMessageEnd()
+	value = result17.Success
+	if result17.Iv != nil {
+		iv = result17.Iv
+	}
+	return
+}
+
 type ReplicatorProcessor struct {
 	processorMap map[string]thrift.TProcessorFunction
 	handler      Replicator
@@ -311,12 +376,13 @@ func (p *ReplicatorProcessor) ProcessorMap() map[string]thrift.TProcessorFunctio
 
 func NewReplicatorProcessor(handler Replicator) *ReplicatorProcessor {
 
-	self16 := &ReplicatorProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
-	self16.processorMap["ping"] = &replicatorProcessorPing{handler: handler}
-	self16.processorMap["add"] = &replicatorProcessorAdd{handler: handler}
-	self16.processorMap["modify"] = &replicatorProcessorModify{handler: handler}
-	self16.processorMap["remove"] = &replicatorProcessorRemove{handler: handler}
-	return self16
+	self20 := &ReplicatorProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
+	self20.processorMap["ping"] = &replicatorProcessorPing{handler: handler}
+	self20.processorMap["add"] = &replicatorProcessorAdd{handler: handler}
+	self20.processorMap["modify"] = &replicatorProcessorModify{handler: handler}
+	self20.processorMap["remove"] = &replicatorProcessorRemove{handler: handler}
+	self20.processorMap["download"] = &replicatorProcessorDownload{handler: handler}
+	return self20
 }
 
 func (p *ReplicatorProcessor) Process(iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
@@ -329,12 +395,12 @@ func (p *ReplicatorProcessor) Process(iprot, oprot thrift.TProtocol) (success bo
 	}
 	iprot.Skip(thrift.STRUCT)
 	iprot.ReadMessageEnd()
-	x17 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
+	x21 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
 	oprot.WriteMessageBegin(name, thrift.EXCEPTION, seqId)
-	x17.Write(oprot)
+	x21.Write(oprot)
 	oprot.WriteMessageEnd()
 	oprot.Flush()
-	return false, x17
+	return false, x21
 
 }
 
@@ -493,6 +559,49 @@ func (p *replicatorProcessorRemove) Process(seqId int32, iprot, oprot thrift.TPr
 		return
 	}
 	if err2 := oprot.WriteMessageBegin("remove", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 := result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 := oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 := oprot.Flush(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
+}
+
+type replicatorProcessorDownload struct {
+	handler Replicator
+}
+
+func (p *replicatorProcessorDownload) Process(seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := NewDownloadArgs()
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("download", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush()
+		return
+	}
+	iprot.ReadMessageEnd()
+	result := NewDownloadResult()
+	if result.Success, result.Iv, err = p.handler.Download(args.Hash); err != nil {
+		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing download: "+err.Error())
+		oprot.WriteMessageBegin("download", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush()
+		return
+	}
+	if err2 := oprot.WriteMessageBegin("download", thrift.REPLY, seqId); err2 != nil {
 		err = err2
 	}
 	if err2 := result.Write(oprot); err == nil && err2 != nil {
@@ -1133,4 +1242,210 @@ func (p *RemoveResult) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("RemoveResult(%+v)", *p)
+}
+
+type DownloadArgs struct {
+	Hash string `thrift:"hash,1"`
+}
+
+func NewDownloadArgs() *DownloadArgs {
+	return &DownloadArgs{}
+}
+
+func (p *DownloadArgs) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return fmt.Errorf("%T read error", p)
+	}
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return fmt.Errorf("%T field %d read error: %s", p, fieldId, err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 1:
+			if err := p.readField1(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return fmt.Errorf("%T read struct end error: %s", p, err)
+	}
+	return nil
+}
+
+func (p *DownloadArgs) readField1(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadString(); err != nil {
+		return fmt.Errorf("error reading field 1: %s")
+	} else {
+		p.Hash = v
+	}
+	return nil
+}
+
+func (p *DownloadArgs) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("download_args"); err != nil {
+		return fmt.Errorf("%T write struct begin error: %s", p, err)
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return fmt.Errorf("%T write field stop error: %s", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return fmt.Errorf("%T write struct stop error: %s", err)
+	}
+	return nil
+}
+
+func (p *DownloadArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err := oprot.WriteFieldBegin("hash", thrift.STRING, 1); err != nil {
+		return fmt.Errorf("%T write field begin error 1:hash: %s", p, err)
+	}
+	if err := oprot.WriteString(string(p.Hash)); err != nil {
+		return fmt.Errorf("%T.hash (1) field write error: %s", p)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return fmt.Errorf("%T write field end error 1:hash: %s", p, err)
+	}
+	return err
+}
+
+func (p *DownloadArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("DownloadArgs(%+v)", *p)
+}
+
+type DownloadResult struct {
+	Success *Replica          `thrift:"success,0"`
+	Iv      *InvalidOperation `thrift:"iv,1"`
+}
+
+func NewDownloadResult() *DownloadResult {
+	return &DownloadResult{}
+}
+
+func (p *DownloadResult) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return fmt.Errorf("%T read error", p)
+	}
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return fmt.Errorf("%T field %d read error: %s", p, fieldId, err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 0:
+			if err := p.readField0(iprot); err != nil {
+				return err
+			}
+		case 1:
+			if err := p.readField1(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return fmt.Errorf("%T read struct end error: %s", p, err)
+	}
+	return nil
+}
+
+func (p *DownloadResult) readField0(iprot thrift.TProtocol) error {
+	p.Success = NewReplica()
+	if err := p.Success.Read(iprot); err != nil {
+		return fmt.Errorf("%T error reading struct: %s", p.Success)
+	}
+	return nil
+}
+
+func (p *DownloadResult) readField1(iprot thrift.TProtocol) error {
+	p.Iv = NewInvalidOperation()
+	if err := p.Iv.Read(iprot); err != nil {
+		return fmt.Errorf("%T error reading struct: %s", p.Iv)
+	}
+	return nil
+}
+
+func (p *DownloadResult) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("download_result"); err != nil {
+		return fmt.Errorf("%T write struct begin error: %s", p, err)
+	}
+	switch {
+	case p.Iv != nil:
+		if err := p.writeField1(oprot); err != nil {
+			return err
+		}
+	default:
+		if err := p.writeField0(oprot); err != nil {
+			return err
+		}
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return fmt.Errorf("%T write field stop error: %s", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return fmt.Errorf("%T write struct stop error: %s", err)
+	}
+	return nil
+}
+
+func (p *DownloadResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.Success != nil {
+		if err := oprot.WriteFieldBegin("success", thrift.STRUCT, 0); err != nil {
+			return fmt.Errorf("%T write field begin error 0:success: %s", p, err)
+		}
+		if err := p.Success.Write(oprot); err != nil {
+			return fmt.Errorf("%T error writing struct: %s", p.Success)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return fmt.Errorf("%T write field end error 0:success: %s", p, err)
+		}
+	}
+	return err
+}
+
+func (p *DownloadResult) writeField1(oprot thrift.TProtocol) (err error) {
+	if p.Iv != nil {
+		if err := oprot.WriteFieldBegin("iv", thrift.STRUCT, 1); err != nil {
+			return fmt.Errorf("%T write field begin error 1:iv: %s", p, err)
+		}
+		if err := p.Iv.Write(oprot); err != nil {
+			return fmt.Errorf("%T error writing struct: %s", p.Iv)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return fmt.Errorf("%T write field end error 1:iv: %s", p, err)
+		}
+	}
+	return err
+}
+
+func (p *DownloadResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("DownloadResult(%+v)", *p)
 }

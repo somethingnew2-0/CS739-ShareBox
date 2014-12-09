@@ -9,6 +9,7 @@ import (
 
 type Options struct {
 	Dir      string `json:"dir" short:"d" long:"dir" default:"data/" description:"Directory to watch and sync"`
+	Username string `json:"username" short:"u" long:"username" default:"test" description:"Username for user login, unique to the userid"`
 	Password string `json:"password" short:"p" long:"password" default:"test" description:"Password to encrpyt file with"`
 	Hash     []byte `json:"hash" short:"h" long:"hash" description:"Calcuated password hash to encrpyt file with"`
 	ClientId string `json:"clientid" short:"c" long:"cid" description:"Client Id unique to this machine"`

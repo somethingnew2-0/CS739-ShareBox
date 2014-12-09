@@ -28,7 +28,7 @@ func (u Upload) Run(sm *StateMachine) {
 		return
 	}
 
-	resp, err := util.Post(fmt.Sprintf("%s/client/%s/file/add", settings.ServerAddress, sm.Options.ClientId), url.Values{"Request": {string(fileJson)}})
+	resp, err := util.Post(fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), url.Values{"Request": {string(fileJson)}})
 	if err != nil {
 		log.Println("Error adding new file", err)
 		return
@@ -45,7 +45,7 @@ func (u Upload) Run(sm *StateMachine) {
 		clients := resp["clients"].([]map[string]string)
 		for _, client := range clients {
 			blockId := client["blockId"]
-			offset, err := strconv.ParseInt(client["offset"], 10, 32)
+			offset, err := strconv.ParseInt(client["offset"], 10, 64)
 			if err != nil {
 				log.Println("Cannot parse shard offset", err)
 				break
@@ -55,7 +55,6 @@ func (u Upload) Run(sm *StateMachine) {
 					shard := block.Shards[offset]
 					shard.Id = client["id"]
 					shard.IP = client["IP"]
-
 					break
 				}
 			}
@@ -96,6 +95,7 @@ func (u Upload) Run(sm *StateMachine) {
 					Shard:       shardData,
 					ShardHash:   shard.Hash,
 					ShardOffset: int32(s),
+					ShardId:     shard.Id,
 					BlockId:     block.Id,
 					FileId:      file.Id,
 					ClientId:    sm.Options.ClientId,
@@ -104,7 +104,7 @@ func (u Upload) Run(sm *StateMachine) {
 				if iv != nil {
 					log.Println("Invalid operation:", iv)
 				} else if err != nil {
-					log.Println("Error during operation:", err)
+					log.Println("Error during upload", err)
 				}
 			}
 		}
