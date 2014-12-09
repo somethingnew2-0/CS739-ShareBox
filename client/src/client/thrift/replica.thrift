@@ -4,12 +4,6 @@ namespace java replica
 namespace php replica
 namespace perl replica
 
-enum Operation {
-  ADD = 1,
-  MODIFY = 2,
-  REMOVE = 3
-}
-
 struct Replica {
   1: binary shard,
   2: string shardHash,
@@ -17,7 +11,6 @@ struct Replica {
   4: string blockId,
   5: string fileId,
   6: string clientId,
-  7: Operation op,
 }
 
 exception InvalidOperation {

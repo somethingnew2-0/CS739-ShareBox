@@ -16,56 +16,17 @@ var _ = fmt.Printf
 
 var GoUnusedProtection__ int
 
-type Operation int64
-
-const (
-	Operation_ADD    Operation = 1
-	Operation_MODIFY Operation = 2
-	Operation_REMOVE Operation = 3
-)
-
-func (p Operation) String() string {
-	switch p {
-	case Operation_ADD:
-		return "Operation_ADD"
-	case Operation_MODIFY:
-		return "Operation_MODIFY"
-	case Operation_REMOVE:
-		return "Operation_REMOVE"
-	}
-	return "<UNSET>"
-}
-
-func OperationFromString(s string) (Operation, error) {
-	switch s {
-	case "Operation_ADD":
-		return Operation_ADD, nil
-	case "Operation_MODIFY":
-		return Operation_MODIFY, nil
-	case "Operation_REMOVE":
-		return Operation_REMOVE, nil
-	}
-	return Operation(math.MinInt32 - 1), fmt.Errorf("not a valid Operation string")
-}
-
 type Replica struct {
-	Shard       []byte    `thrift:"shard,1"`
-	ShardHash   string    `thrift:"shardHash,2"`
-	ShardOffset int32     `thrift:"shardOffset,3"`
-	BlockId     string    `thrift:"blockId,4"`
-	FileId      string    `thrift:"fileId,5"`
-	ClientId    string    `thrift:"clientId,6"`
-	Op          Operation `thrift:"op,7"`
+	Shard       []byte `thrift:"shard,1"`
+	ShardHash   string `thrift:"shardHash,2"`
+	ShardOffset int32  `thrift:"shardOffset,3"`
+	BlockId     string `thrift:"blockId,4"`
+	FileId      string `thrift:"fileId,5"`
+	ClientId    string `thrift:"clientId,6"`
 }
 
 func NewReplica() *Replica {
-	return &Replica{
-		Op: math.MinInt32 - 1, // unset sentinal value
-	}
-}
-
-func (p *Replica) IsSetOp() bool {
-	return int64(p.Op) != math.MinInt32-1
+	return &Replica{}
 }
 
 func (p *Replica) Read(iprot thrift.TProtocol) error {
@@ -103,10 +64,6 @@ func (p *Replica) Read(iprot thrift.TProtocol) error {
 			}
 		case 6:
 			if err := p.readField6(iprot); err != nil {
-				return err
-			}
-		case 7:
-			if err := p.readField7(iprot); err != nil {
 				return err
 			}
 		default:
@@ -178,15 +135,6 @@ func (p *Replica) readField6(iprot thrift.TProtocol) error {
 	return nil
 }
 
-func (p *Replica) readField7(iprot thrift.TProtocol) error {
-	if v, err := iprot.ReadI32(); err != nil {
-		return fmt.Errorf("error reading field 7: %s")
-	} else {
-		p.Op = Operation(v)
-	}
-	return nil
-}
-
 func (p *Replica) Write(oprot thrift.TProtocol) error {
 	if err := oprot.WriteStructBegin("Replica"); err != nil {
 		return fmt.Errorf("%T write struct begin error: %s", p, err)
@@ -207,9 +155,6 @@ func (p *Replica) Write(oprot thrift.TProtocol) error {
 		return err
 	}
 	if err := p.writeField6(oprot); err != nil {
-		return err
-	}
-	if err := p.writeField7(oprot); err != nil {
 		return err
 	}
 	if err := oprot.WriteFieldStop(); err != nil {
@@ -297,21 +242,6 @@ func (p *Replica) writeField6(oprot thrift.TProtocol) (err error) {
 	}
 	if err := oprot.WriteFieldEnd(); err != nil {
 		return fmt.Errorf("%T write field end error 6:clientId: %s", p, err)
-	}
-	return err
-}
-
-func (p *Replica) writeField7(oprot thrift.TProtocol) (err error) {
-	if p.IsSetOp() {
-		if err := oprot.WriteFieldBegin("op", thrift.I32, 7); err != nil {
-			return fmt.Errorf("%T write field begin error 7:op: %s", p, err)
-		}
-		if err := oprot.WriteI32(int32(p.Op)); err != nil {
-			return fmt.Errorf("%T.op (7) field write error: %s", p)
-		}
-		if err := oprot.WriteFieldEnd(); err != nil {
-			return fmt.Errorf("%T write field end error 7:op: %s", p, err)
-		}
 	}
 	return err
 }
