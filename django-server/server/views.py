@@ -149,9 +149,112 @@ def addFile(request, clientId):
 @require_POST
 @json_view
 def updateFile(request, clientId):
-    return {
-        'allowed' : False
+    client = consulRead('Client', clientId)
+    data = json.loads(request.body)
+    updateFile = consulRead('File', data['id'])
+    if updateFile['clientId'] != client['id'] or updateFile['userId'] != client['userId'] :
+        return {
+            'allowed' : False
+        }
+    
+    availableSpace = int(client['userSpace']) - int(client['userReservedSpace'])
+    deltasize = int(updateFile['size']) - int(data['size'])
+    if deltasize > availableSpace:
+        return {
+            'allowed' : False,
+            'message' : 'Out of space',
+            'error' : 403
+        }
+    else:
+        #This works even if the file has shrunk in size (deltasize will be negative in that case)
+        client['userReservedSpace'] = int(client['userReservedSpace']) + deltasize
+
+    consulWrite('Client', client)
+    updateFile['name'] = str(data['name'])
+    updateFile['deltasize'] = int(deltasize)
+    updateFile['size'] = int(data['size'])
+    updatedBlocks = []
+    for blockInfo in data['blocks']:
+        if blockInfo.get('blockId', None) is None:
+            block = Block().__dict__
+            block['fileId'] = updateFile['id']
+            block['offset'] = blockInfo['blockOffset']
+            block['shardCount'] = 0
+            block['onlineShards'] = 0
+            block['shards'] = []
+            consulWrite('Block', block)
+        else:
+            block = consulRead('Block', blockInfo['blockId'])
+
+        updatedBlocks.append(updateBlock(block, blockInfo, updateFile))
+
+    returnInfo = {
+        'allowed' : True,
+        'id' : updateFile['id'],
+        'blocks' : [],
+        'shards' : 0,
+        'clients' : []
     }
+
+    for blk in updatedBlocks:
+        returnInfo['blocks'] += blk['id']
+        returnInfo['shards'] += blk['shardCount']
+        returnInfo['clients'] += blk['clients']
+
+    return returnInfo
+
+def updateBlock(block, blockInfo, updateFile):
+    newShardsInfo = []
+    oldShardsInfo = []
+    for shardInfo in blockInfo['shards']:
+        if shardInfo.get('shardId', None) is None:
+            newShardsInfo.append(shardInfo)
+        else:
+            oldShard = consulRead('Shard', shardInfo['shardId'])
+            oldShardsInfo.append(oldShard)
+
+    clients = getShardClients(newShardsInfo)
+    newShards = addShardsToBlock(block, newShardsInfo, clients)
+
+    offlineShards, onlineShards = shardsByStatus(oldShardsInfo)
+    clients = getShardClients(offlineShards)
+    for i in range(0,len(offlineShards)):
+        offlineShards[i]['clientId'] = clients[i]
+        offlineShards[i]['status'] = 'online'
+        consulWrite('Shard', offlineShards[i])
+        updateShardClient(offlineShards[i]['clientId'],offlineShards[i]['id'])
+    
+
+    updatedBlockInfo = {
+        'id' : [block['id']],
+        'shardCount' : len(offlineShards + onlineShards + newShards),
+        'clients' = []
+    }
+
+    for shard in newShards+offlineShards+onlineShards :
+        client = consulRead('Client', shard['clientId'])
+        updatedBlockInfo['clients'].append({ 
+                'id' : shard['id'],
+                'blockId': shard['blockId'],
+                'offset' : shard['offset'],
+                'IP' : client['ip']
+            })
+    
+    return updatedBlockInfo
+
+
+
+def shardsByStatus(shards):
+    offlines = []
+    onlines = []
+    for shard in shards:
+        assert (shard['status'] == 'offline' or shard['status'] == 'online')
+        if shard['status'] == 'offline':
+            offlines.append(shard)
+        else shard['status'] == 'online':
+            onlines.append(shard)
+
+    return (offlines, onlines)
 
 @csrf_exempt
 @require_POST
@@ -348,35 +451,64 @@ def invalidateShard(request, shardId):
 def addBlock(blockInfo, newFile):
     block = Block()
     block.offset = blockInfo["blockOffset"]
-    block.fileId = newFile.id
+    if isinstance(newFile, dict):
+        block.fileId = newFile['id']
+    else:
+        block.fileId = newFile.id
     block.shardCount = 0
     block.onlineShards = 0
     block.shards = []
-    shardIndex = 0
-    clients = getShardClients(blockInfo['shards'])
-    for shardInfo in blockInfo['shards']:
-        addShard(shardInfo, block, shardIndex, clients)
-        block.shardCount = block.shardCount + 1
-        block.onlineShards = block.onlineShards + 1 ## Assume the shards will be written correctly, TODO : Check for correct write completion
-        shardIndex = shardIndex + 1
+    clients = getShardClients(shards)
+    addShardsToBlock(block, blockInfo['shards'], clients)
     consulWrite('Block', block)
-    newFile.blocks.append(block.id)
+    if isinstance(newFile, dict):
+        newFile['blocks'].append(block.id)
+    else:
+        newFile.blocks.append(block.id)
+
+def addShardsToBlock(block, shards, clients):
+    shardIndex = 0
+    newShards = []
+    for shardInfo in shards:
+        newShards.append(addShard(shardInfo, block, shardIndex, clients))
+        if isinstance(block, dict):
+            block['shardCount'] = int(block['shardCount']) + 1
+            block['onlineShards'] = int(block['onlineShards']) + 1
+        else:
+            block.shardCount = block.shardCount + 1
+            block.onlineShards = block.onlineShards + 1 ## Assume the shards will be written correctly, TODO : Check for correct write completion
+        shardIndex = shardIndex + 1
+
+    #Return newly created shards, useful in updateFile scenario in updateBlock routine
+    return newShards
 
 def addShard(shardInfo, block, shardIndex, clients):
     shard = Shard()
     shard.offset = shardInfo["offset"]
     shard.size = int(shardInfo["size"])
     shard.clientId = clients[shardIndex]['id']
-    shard.blockId = block.id
-    shard.fileId = block.fileId
+    if isinstance(block, dict):
+        shard.blockId = block['id']
+        shard.fileId = block['fileId']
+    else:
+        shard.blockId = block.id
+        shard.fileId = block.fileId
+    
     shard.status = 'online'
     consulWrite('Shard', shard)
-    block.shards.append(shard.id)
-    shardClient = consulRead('Client', clients[shardIndex]['id'])
-    if shardClient['shards'] is not None:
-        shardClient['shards'].append(shard.id)
+    if isinstance(block, dict):
+        block['shards'].append(shard.id)
     else:
-        shardClient['shards'] = [shard.id]
+        block.shards.append(shard.id)    
+    updateShardClient(clients[shardIndex]['id'], shard.id)
+    return shard.__dict__
+
+def updateShardClient(clientId, shardId):
+    shardClient = consulRead('Client', )
+    if shardClient['shards'] is not None:
+        shardClient['shards'].append(shardId)
+    else:
+        shardClient['shards'] = [shardId]
     consulWrite('Client', shardClient)
 
 def getShardClients(shards):
