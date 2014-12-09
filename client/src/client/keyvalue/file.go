@@ -3,7 +3,6 @@ package keyvalue
 import (
 	"encoding/json"
 	"errors"
-	"net"
 )
 
 type Shard struct {
@@ -11,7 +10,7 @@ type Shard struct {
 	Hash   string `json:"hash"`
 	Offset int64  `json:"offset"`
 	Size   int64  `json:"size"`
-	IP     net.IP `json:"ip"`
+	IP     string `json:"ip"`
 }
 
 type Block struct {

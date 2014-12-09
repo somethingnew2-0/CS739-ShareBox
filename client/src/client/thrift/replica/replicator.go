@@ -18,13 +18,13 @@ type Replicator interface {
 	Ping() (err error)
 	// Parameters:
 	//  - R
-	Add(r *Replica) (err *InvalidOperation, err error)
+	Add(r *Replica) (iv *InvalidOperation, err error)
 	// Parameters:
 	//  - R
-	Modify(r *Replica) (err *InvalidOperation, err error)
+	Modify(r *Replica) (iv *InvalidOperation, err error)
 	// Parameters:
 	//  - R
-	Remove(r *Replica) (err *InvalidOperation, err error)
+	Remove(r *Replica) (iv *InvalidOperation, err error)
 }
 
 type ReplicatorClient struct {
@@ -110,7 +110,7 @@ func (p *ReplicatorClient) recvPing() (err error) {
 
 // Parameters:
 //  - R
-func (p *ReplicatorClient) Add(r *Replica) (err *InvalidOperation, err error) {
+func (p *ReplicatorClient) Add(r *Replica) (iv *InvalidOperation, err error) {
 	if err = p.sendAdd(r); err != nil {
 		return
 	}
@@ -133,7 +133,7 @@ func (p *ReplicatorClient) sendAdd(r *Replica) (err error) {
 	return
 }
 
-func (p *ReplicatorClient) recvAdd() (err *InvalidOperation, err error) {
+func (p *ReplicatorClient) recvAdd() (iv *InvalidOperation, err error) {
 	iprot := p.InputProtocol
 	if iprot == nil {
 		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
@@ -163,15 +163,15 @@ func (p *ReplicatorClient) recvAdd() (err *InvalidOperation, err error) {
 	result5 := NewAddResult()
 	err = result5.Read(iprot)
 	iprot.ReadMessageEnd()
-	if result5.Err != nil {
-		err = result5.Err
+	if result5.Iv != nil {
+		iv = result5.Iv
 	}
 	return
 }
 
 // Parameters:
 //  - R
-func (p *ReplicatorClient) Modify(r *Replica) (err *InvalidOperation, err error) {
+func (p *ReplicatorClient) Modify(r *Replica) (iv *InvalidOperation, err error) {
 	if err = p.sendModify(r); err != nil {
 		return
 	}
@@ -194,7 +194,7 @@ func (p *ReplicatorClient) sendModify(r *Replica) (err error) {
 	return
 }
 
-func (p *ReplicatorClient) recvModify() (err *InvalidOperation, err error) {
+func (p *ReplicatorClient) recvModify() (iv *InvalidOperation, err error) {
 	iprot := p.InputProtocol
 	if iprot == nil {
 		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
@@ -224,15 +224,15 @@ func (p *ReplicatorClient) recvModify() (err *InvalidOperation, err error) {
 	result9 := NewModifyResult()
 	err = result9.Read(iprot)
 	iprot.ReadMessageEnd()
-	if result9.Err != nil {
-		err = result9.Err
+	if result9.Iv != nil {
+		iv = result9.Iv
 	}
 	return
 }
 
 // Parameters:
 //  - R
-func (p *ReplicatorClient) Remove(r *Replica) (err *InvalidOperation, err error) {
+func (p *ReplicatorClient) Remove(r *Replica) (iv *InvalidOperation, err error) {
 	if err = p.sendRemove(r); err != nil {
 		return
 	}
@@ -255,7 +255,7 @@ func (p *ReplicatorClient) sendRemove(r *Replica) (err error) {
 	return
 }
 
-func (p *ReplicatorClient) recvRemove() (err *InvalidOperation, err error) {
+func (p *ReplicatorClient) recvRemove() (iv *InvalidOperation, err error) {
 	iprot := p.InputProtocol
 	if iprot == nil {
 		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
@@ -285,8 +285,8 @@ func (p *ReplicatorClient) recvRemove() (err *InvalidOperation, err error) {
 	result13 := NewRemoveResult()
 	err = result13.Read(iprot)
 	iprot.ReadMessageEnd()
-	if result13.Err != nil {
-		err = result13.Err
+	if result13.Iv != nil {
+		iv = result13.Iv
 	}
 	return
 }
@@ -398,7 +398,7 @@ func (p *replicatorProcessorAdd) Process(seqId int32, iprot, oprot thrift.TProto
 	}
 	iprot.ReadMessageEnd()
 	result := NewAddResult()
-	if result.Err, err = p.handler.Add(args.R); err != nil {
+	if result.Iv, err = p.handler.Add(args.R); err != nil {
 		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing add: "+err.Error())
 		oprot.WriteMessageBegin("add", thrift.EXCEPTION, seqId)
 		x.Write(oprot)
@@ -441,7 +441,7 @@ func (p *replicatorProcessorModify) Process(seqId int32, iprot, oprot thrift.TPr
 	}
 	iprot.ReadMessageEnd()
 	result := NewModifyResult()
-	if result.Err, err = p.handler.Modify(args.R); err != nil {
+	if result.Iv, err = p.handler.Modify(args.R); err != nil {
 		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing modify: "+err.Error())
 		oprot.WriteMessageBegin("modify", thrift.EXCEPTION, seqId)
 		x.Write(oprot)
@@ -484,7 +484,7 @@ func (p *replicatorProcessorRemove) Process(seqId int32, iprot, oprot thrift.TPr
 	}
 	iprot.ReadMessageEnd()
 	result := NewRemoveResult()
-	if result.Err, err = p.handler.Remove(args.R); err != nil {
+	if result.Iv, err = p.handler.Remove(args.R); err != nil {
 		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing remove: "+err.Error())
 		oprot.WriteMessageBegin("remove", thrift.EXCEPTION, seqId)
 		x.Write(oprot)
@@ -697,7 +697,7 @@ func (p *AddArgs) String() string {
 }
 
 type AddResult struct {
-	Err *InvalidOperation `thrift:"err,1"`
+	Iv *InvalidOperation `thrift:"iv,1"`
 }
 
 func NewAddResult() *AddResult {
@@ -737,9 +737,9 @@ func (p *AddResult) Read(iprot thrift.TProtocol) error {
 }
 
 func (p *AddResult) readField1(iprot thrift.TProtocol) error {
-	p.Err = NewInvalidOperation()
-	if err := p.Err.Read(iprot); err != nil {
-		return fmt.Errorf("%T error reading struct: %s", p.Err)
+	p.Iv = NewInvalidOperation()
+	if err := p.Iv.Read(iprot); err != nil {
+		return fmt.Errorf("%T error reading struct: %s", p.Iv)
 	}
 	return nil
 }
@@ -749,7 +749,7 @@ func (p *AddResult) Write(oprot thrift.TProtocol) error {
 		return fmt.Errorf("%T write struct begin error: %s", p, err)
 	}
 	switch {
-	case p.Err != nil:
+	case p.Iv != nil:
 		if err := p.writeField1(oprot); err != nil {
 			return err
 		}
@@ -764,15 +764,15 @@ func (p *AddResult) Write(oprot thrift.TProtocol) error {
 }
 
 func (p *AddResult) writeField1(oprot thrift.TProtocol) (err error) {
-	if p.Err != nil {
-		if err := oprot.WriteFieldBegin("err", thrift.STRUCT, 1); err != nil {
-			return fmt.Errorf("%T write field begin error 1:err: %s", p, err)
+	if p.Iv != nil {
+		if err := oprot.WriteFieldBegin("iv", thrift.STRUCT, 1); err != nil {
+			return fmt.Errorf("%T write field begin error 1:iv: %s", p, err)
 		}
-		if err := p.Err.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", p.Err)
+		if err := p.Iv.Write(oprot); err != nil {
+			return fmt.Errorf("%T error writing struct: %s", p.Iv)
 		}
 		if err := oprot.WriteFieldEnd(); err != nil {
-			return fmt.Errorf("%T write field end error 1:err: %s", p, err)
+			return fmt.Errorf("%T write field end error 1:iv: %s", p, err)
 		}
 	}
 	return err
@@ -872,7 +872,7 @@ func (p *ModifyArgs) String() string {
 }
 
 type ModifyResult struct {
-	Err *InvalidOperation `thrift:"err,1"`
+	Iv *InvalidOperation `thrift:"iv,1"`
 }
 
 func NewModifyResult() *ModifyResult {
@@ -912,9 +912,9 @@ func (p *ModifyResult) Read(iprot thrift.TProtocol) error {
 }
 
 func (p *ModifyResult) readField1(iprot thrift.TProtocol) error {
-	p.Err = NewInvalidOperation()
-	if err := p.Err.Read(iprot); err != nil {
-		return fmt.Errorf("%T error reading struct: %s", p.Err)
+	p.Iv = NewInvalidOperation()
+	if err := p.Iv.Read(iprot); err != nil {
+		return fmt.Errorf("%T error reading struct: %s", p.Iv)
 	}
 	return nil
 }
@@ -924,7 +924,7 @@ func (p *ModifyResult) Write(oprot thrift.TProtocol) error {
 		return fmt.Errorf("%T write struct begin error: %s", p, err)
 	}
 	switch {
-	case p.Err != nil:
+	case p.Iv != nil:
 		if err := p.writeField1(oprot); err != nil {
 			return err
 		}
@@ -939,15 +939,15 @@ func (p *ModifyResult) Write(oprot thrift.TProtocol) error {
 }
 
 func (p *ModifyResult) writeField1(oprot thrift.TProtocol) (err error) {
-	if p.Err != nil {
-		if err := oprot.WriteFieldBegin("err", thrift.STRUCT, 1); err != nil {
-			return fmt.Errorf("%T write field begin error 1:err: %s", p, err)
+	if p.Iv != nil {
+		if err := oprot.WriteFieldBegin("iv", thrift.STRUCT, 1); err != nil {
+			return fmt.Errorf("%T write field begin error 1:iv: %s", p, err)
 		}
-		if err := p.Err.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", p.Err)
+		if err := p.Iv.Write(oprot); err != nil {
+			return fmt.Errorf("%T error writing struct: %s", p.Iv)
 		}
 		if err := oprot.WriteFieldEnd(); err != nil {
-			return fmt.Errorf("%T write field end error 1:err: %s", p, err)
+			return fmt.Errorf("%T write field end error 1:iv: %s", p, err)
 		}
 	}
 	return err
@@ -1047,7 +1047,7 @@ func (p *RemoveArgs) String() string {
 }
 
 type RemoveResult struct {
-	Err *InvalidOperation `thrift:"err,1"`
+	Iv *InvalidOperation `thrift:"iv,1"`
 }
 
 func NewRemoveResult() *RemoveResult {
@@ -1087,9 +1087,9 @@ func (p *RemoveResult) Read(iprot thrift.TProtocol) error {
 }
 
 func (p *RemoveResult) readField1(iprot thrift.TProtocol) error {
-	p.Err = NewInvalidOperation()
-	if err := p.Err.Read(iprot); err != nil {
-		return fmt.Errorf("%T error reading struct: %s", p.Err)
+	p.Iv = NewInvalidOperation()
+	if err := p.Iv.Read(iprot); err != nil {
+		return fmt.Errorf("%T error reading struct: %s", p.Iv)
 	}
 	return nil
 }
@@ -1099,7 +1099,7 @@ func (p *RemoveResult) Write(oprot thrift.TProtocol) error {
 		return fmt.Errorf("%T write struct begin error: %s", p, err)
 	}
 	switch {
-	case p.Err != nil:
+	case p.Iv != nil:
 		if err := p.writeField1(oprot); err != nil {
 			return err
 		}
@@ -1114,15 +1114,15 @@ func (p *RemoveResult) Write(oprot thrift.TProtocol) error {
 }
 
 func (p *RemoveResult) writeField1(oprot thrift.TProtocol) (err error) {
-	if p.Err != nil {
-		if err := oprot.WriteFieldBegin("err", thrift.STRUCT, 1); err != nil {
-			return fmt.Errorf("%T write field begin error 1:err: %s", p, err)
+	if p.Iv != nil {
+		if err := oprot.WriteFieldBegin("iv", thrift.STRUCT, 1); err != nil {
+			return fmt.Errorf("%T write field begin error 1:iv: %s", p, err)
 		}
-		if err := p.Err.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", p.Err)
+		if err := p.Iv.Write(oprot); err != nil {
+			return fmt.Errorf("%T error writing struct: %s", p.Iv)
 		}
 		if err := oprot.WriteFieldEnd(); err != nil {
-			return fmt.Errorf("%T write field end error 1:err: %s", p, err)
+			return fmt.Errorf("%T write field end error 1:iv: %s", p, err)
 		}
 	}
 	return err

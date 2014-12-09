@@ -1,16 +1,19 @@
 package state
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"net/url"
 	"strconv"
 
 	"client/keyvalue"
 	"client/settings"
+	"client/thrift/replica"
 	"client/util"
+
+	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
 type Upload struct {
@@ -47,14 +50,61 @@ func (u Upload) Run(sm *StateMachine) {
 				log.Println("Cannot parse shard offset", err)
 				break
 			}
-
 			for _, block := range file.Blocks {
 				if block.Id == blockId {
 					shard := block.Shards[offset]
 					shard.Id = client["id"]
-					shard.IP = net.ParseIP(client["IP"])
+					shard.IP = client["IP"]
 
 					break
+				}
+			}
+		}
+
+		transports := make(map[string]thrift.TTransport)
+		transportFactory := thrift.NewTBufferedTransportFactory(10000)
+		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+
+		for b, block := range file.Blocks {
+			for s, shard := range block.Shards {
+				transport := transports[shard.IP]
+				if transport == nil {
+					addr := fmt.Sprintf("%s:%d", shard.IP, settings.ClientPort)
+					if settings.ClientTLS {
+						cfg := new(tls.Config)
+						cfg.InsecureSkipVerify = true
+						transport, err = thrift.NewTSSLSocket(addr, cfg)
+					} else {
+						transport, err = thrift.NewTSocket(addr)
+					}
+					if err != nil {
+						log.Println("Error opening socket:", err)
+						break
+					}
+					transport = transportFactory.GetTransport(transport)
+					defer transport.Close()
+					if err := transport.Open(); err != nil {
+						break
+					}
+					transports[shard.IP] = transport
+				}
+				client := replica.NewReplicatorClientFactory(transport, protocolFactory)
+				client.Ping()
+
+				shardData := u.EncodedBlocks[b][s*settings.ShardLength : (s+1)*settings.ShardLength]
+				iv, err := client.Add(&replica.Replica{
+					Shard:       shardData,
+					ShardHash:   shard.Hash,
+					ShardOffset: int32(s),
+					BlockId:     block.Id,
+					FileId:      file.Id,
+					ClientId:    sm.Options.ClientId,
+				})
+
+				if iv != nil {
+					log.Println("Invalid operation:", iv)
+				} else if err != nil {
+					log.Println("Error during operation:", err)
 				}
 			}
 		}
