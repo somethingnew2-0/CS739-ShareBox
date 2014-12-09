@@ -50,6 +50,7 @@ func Post(address string, values interface{}) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: Remove this
 	ioutil.WriteFile("error", respJson, 0666)
 	respObj := map[string]interface{}{}
 	err = json.Unmarshal(respJson, &respObj)

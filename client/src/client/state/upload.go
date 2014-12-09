@@ -70,7 +70,7 @@ func (u Upload) Run(sm *StateMachine) {
 				client.Ping()
 
 				shardData := u.EncodedBlocks[b][s*settings.ShardLength : (s+1)*settings.ShardLength]
-				iv, err := client.Add(&replica.Replica{
+				err = client.Add(&replica.Replica{
 					Shard:       shardData,
 					ShardHash:   shard.Hash,
 					ShardOffset: int32(s),
@@ -80,9 +80,7 @@ func (u Upload) Run(sm *StateMachine) {
 					ClientId:    sm.Options.ClientId,
 				})
 
-				if iv != nil {
-					log.Println("Invalid operation:", iv)
-				} else if err != nil {
+				if err != nil {
 					log.Println("Error during upload", err)
 				}
 			}

@@ -49,11 +49,8 @@ func (r Remove) Run(sm *StateMachine) {
 			client := replica.NewReplicatorClientFactory(transport, protocolFactory)
 			client.Ping()
 
-			iv, err := client.Remove(shard["id"])
-
-			if iv != nil {
-				log.Println("Invalid operation:", iv)
-			} else if err != nil {
+			err = client.Remove(shard["id"])
+			if err != nil {
 				log.Println("Error during remove", err)
 			}
 		}

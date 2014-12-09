@@ -77,11 +77,8 @@ func (r Recover) Run(sm *StateMachine) {
 				client := replica.NewReplicatorClientFactory(transport, protocolFactory)
 				client.Ping()
 
-				replica, iv, err := client.Download(shard.Id)
-				if iv != nil {
-					log.Println("Invalid operation:", iv)
-					decode.BlockErrs[b] = append(decode.BlockErrs[b], byte(b))
-				} else if err != nil {
+				replica, err := client.Download(shard.Id)
+				if err != nil {
 					log.Println("Error during download:", err)
 					decode.BlockErrs[b] = append(decode.BlockErrs[b], byte(b))
 				} else {
