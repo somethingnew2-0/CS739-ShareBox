@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"path"
 
 	"client/keyvalue"
 	"client/settings"
 	"client/thrift/replica"
+	"client/util"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
 )
@@ -61,10 +63,17 @@ func (rh ReplicaHandler) Ping() error {
 }
 
 func (rh ReplicaHandler) Add(r *replica.Replica) error {
+	resp, err := util.Post(fmt.Sprintf("shard/%s/validate", r.ShardId), url.Values{"recieverId": {rh.StateMachine.Options.ClientId}, "ownerId": {r.ClientId}})
+	if err != nil {
+		return err
+	}
+	if !resp["allowed"].(bool) {
+		return errors.New("Adding this shard to the replica is not allowed")
+	}
+
 	shardHash := sha256.New()
 	shardHash.Write(r.Shard)
-
-	if subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(r.ShardHash)) == 0 {
+	if subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(resp["hash"].(string))) == 0 || subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(r.ShardHash)) == 0 {
 		return errors.New("Shard didn't match shard hash")
 	}
 	replica := &keyvalue.Replica{
@@ -75,7 +84,7 @@ func (rh ReplicaHandler) Add(r *replica.Replica) error {
 		FileId:      r.FileId,
 		ClientId:    r.ClientId,
 	}
-	err := os.MkdirAll(path.Dir(getPath(replica.ShardId)), 0666)
+	err = os.MkdirAll(path.Dir(getPath(replica.ShardId)), 0666)
 	if err != nil {
 		return err
 	}
@@ -92,12 +101,20 @@ func (rh ReplicaHandler) Add(r *replica.Replica) error {
 }
 
 func (rh ReplicaHandler) Modify(r *replica.Replica) error {
+	resp, err := util.Post(fmt.Sprintf("shard/%s/validate", r.ShardId), url.Values{"recieverId": {rh.StateMachine.Options.ClientId}, "ownerId": {r.ClientId}})
+	if err != nil {
+		return err
+	}
+	if !resp["allowed"].(bool) {
+		return errors.New("Adding this shard to the replica is not allowed")
+	}
+
 	shardHash := sha256.New()
 	shardHash.Write(r.Shard)
-
-	if subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(r.ShardHash)) == 0 {
+	if subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(resp["hash"].(string))) == 0 || subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(r.ShardHash)) == 0 {
 		return errors.New("Shard didn't match shard hash")
 	}
+
 	replica := &keyvalue.Replica{
 		ShardHash:   r.ShardHash,
 		ShardOffset: r.ShardOffset,
@@ -106,7 +123,7 @@ func (rh ReplicaHandler) Modify(r *replica.Replica) error {
 		FileId:      r.FileId,
 		ClientId:    r.ClientId,
 	}
-	err := os.MkdirAll(path.Dir(getPath(replica.ShardId)), 0666)
+	err = os.MkdirAll(path.Dir(getPath(replica.ShardId)), 0666)
 	if err != nil {
 		return err
 	}
@@ -122,13 +139,26 @@ func (rh ReplicaHandler) Modify(r *replica.Replica) error {
 }
 
 func (rh ReplicaHandler) Remove(shardId string) error {
-	err := os.Remove(getPath(shardId))
+	r, err := rh.StateMachine.Replicas.GetReplica(shardId)
 	if err != nil {
 		return err
 	}
-	err = rh.StateMachine.Replicas.SetReplica(shardId, nil)
+
+	resp, err := util.Post(fmt.Sprintf("block/%s/invalidate", r.ShardId), url.Values{"recieverId": {rh.StateMachine.Options.ClientId}, "ownerId": {r.ClientId}})
 	if err != nil {
 		return err
+	}
+	if !resp["delete"].(bool) {
+		return errors.New("Deleting this shard to the replica is not allowed")
+	}
+
+	err = rh.StateMachine.Replicas.SetReplica(shardId, nil)
+	removeErr := os.Remove(getPath(shardId))
+	if err != nil {
+		return err
+	}
+	if removeErr != nil {
+		return removeErr
 	}
 	return nil
 }
