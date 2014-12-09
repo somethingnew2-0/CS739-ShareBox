@@ -1,7 +1,6 @@
 package state
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/url"
@@ -9,6 +8,7 @@ import (
 
 	"client/keyvalue"
 	"client/settings"
+	"client/thrift/pool"
 	"client/thrift/replica"
 	"client/util"
 
@@ -54,33 +54,18 @@ func (u Upload) Run(sm *StateMachine) {
 			}
 		}
 
-		transports := make(map[string]thrift.TTransport)
-		transportFactory := thrift.NewTBufferedTransportFactory(10000)
+		transportPool := pool.NewTransportPool(thrift.NewTBufferedTransportFactory(10000))
+		defer transportPool.CloseAll()
 		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
 
 		for b, block := range file.Blocks {
 			for s, shard := range block.Shards {
-				transport := transports[shard.IP]
-				if transport == nil {
-					addr := fmt.Sprintf("%s:%d", shard.IP, settings.ClientPort)
-					if settings.ClientTLS {
-						cfg := new(tls.Config)
-						cfg.InsecureSkipVerify = true
-						transport, err = thrift.NewTSSLSocket(addr, cfg)
-					} else {
-						transport, err = thrift.NewTSocket(addr)
-					}
-					if err != nil {
-						log.Println("Error opening socket:", err)
-						break
-					}
-					transport = transportFactory.GetTransport(transport)
-					defer transport.Close()
-					if err := transport.Open(); err != nil {
-						break
-					}
-					transports[shard.IP] = transport
+				transport, err := transportPool.GetTransport(shard.IP)
+				if err != nil {
+					log.Println("Error opening connection to ", shard.IP, err)
+					continue
 				}
+
 				client := replica.NewReplicatorClientFactory(transport, protocolFactory)
 				client.Ping()
 

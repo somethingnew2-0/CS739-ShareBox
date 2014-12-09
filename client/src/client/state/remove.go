@@ -1,12 +1,11 @@
 package state
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/url"
 
-	"client/settings"
+	"client/thrift/pool"
 	"client/thrift/replica"
 	"client/util"
 
@@ -37,31 +36,16 @@ func (r Remove) Run(sm *StateMachine) {
 	if resp["allowed"].(bool) {
 		shards := resp["clients"].([]map[string]string)
 		for _, shard := range shards {
-			transports := make(map[string]thrift.TTransport)
-			transportFactory := thrift.NewTBufferedTransportFactory(1024)
+			transportPool := pool.NewTransportPool(thrift.NewTBufferedTransportFactory(10000))
+			defer transportPool.CloseAll()
 			protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
 			// TODO Validate this an IP address using net.IP
-			transport := transports[shard["IP"]]
-			if transport == nil {
-				addr := fmt.Sprintf("%s:%d", shard["IP"], settings.ClientPort)
-				if settings.ClientTLS {
-					cfg := new(tls.Config)
-					cfg.InsecureSkipVerify = true
-					transport, err = thrift.NewTSSLSocket(addr, cfg)
-				} else {
-					transport, err = thrift.NewTSocket(addr)
-				}
-				if err != nil {
-					log.Println("Error opening socket:", err)
-					break
-				}
-				transport = transportFactory.GetTransport(transport)
-				defer transport.Close()
-				if err := transport.Open(); err != nil {
-					break
-				}
-				transports[shard["IP"]] = transport
+			transport, err := transportPool.GetTransport(shard["IP"])
+			if err != nil {
+				log.Println("Error opening connection to ", shard["IP"], err)
+				continue
 			}
+
 			client := replica.NewReplicatorClientFactory(transport, protocolFactory)
 			client.Ping()
 
