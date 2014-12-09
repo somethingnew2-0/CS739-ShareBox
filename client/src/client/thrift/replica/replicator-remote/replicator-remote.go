@@ -11,7 +11,7 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"shared"
+	"replica"
 	"strconv"
 	"strings"
 )
@@ -20,7 +20,11 @@ func Usage() {
 	fmt.Fprintln(os.Stderr, "Usage of ", os.Args[0], " [-h host:port] [-u url] [-f[ramed]] function [arg1 [arg2...]]:")
 	flag.PrintDefaults()
 	fmt.Fprintln(os.Stderr, "\nFunctions:")
-	fmt.Fprintln(os.Stderr, "  SharedStruct getStruct(i32 key)")
+	fmt.Fprintln(os.Stderr, "  void ping()")
+	fmt.Fprintln(os.Stderr, "  void add(Replica r)")
+	fmt.Fprintln(os.Stderr, "  void modify(Replica r)")
+	fmt.Fprintln(os.Stderr, "  void remove(Replica r)")
+	fmt.Fprintln(os.Stderr, "  Replica download(string hash)")
 	fmt.Fprintln(os.Stderr)
 	os.Exit(0)
 }
@@ -108,26 +112,104 @@ func main() {
 		Usage()
 		os.Exit(1)
 	}
-	client := shared.NewSharedServiceClientFactory(trans, protocolFactory)
+	client := replica.NewReplicatorClientFactory(trans, protocolFactory)
 	if err := trans.Open(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error opening socket to ", host, ":", port, " ", err)
 		os.Exit(1)
 	}
 
 	switch cmd {
-	case "getStruct":
-		if flag.NArg()-1 != 1 {
-			fmt.Fprintln(os.Stderr, "GetStruct requires 1 args")
+	case "ping":
+		if flag.NArg()-1 != 0 {
+			fmt.Fprintln(os.Stderr, "Ping requires 0 args")
 			flag.Usage()
 		}
-		tmp0, err6 := (strconv.Atoi(flag.Arg(1)))
-		if err6 != nil {
+		fmt.Print(client.Ping())
+		fmt.Print("\n")
+		break
+	case "add":
+		if flag.NArg()-1 != 1 {
+			fmt.Fprintln(os.Stderr, "Add requires 1 args")
+			flag.Usage()
+		}
+		arg22 := flag.Arg(1)
+		mbTrans23 := thrift.NewTMemoryBufferLen(len(arg22))
+		defer mbTrans23.Close()
+		_, err24 := mbTrans23.WriteString(arg22)
+		if err24 != nil {
 			Usage()
 			return
 		}
-		argvalue0 := int32(tmp0)
+		factory25 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt26 := factory25.GetProtocol(mbTrans23)
+		argvalue0 := replica.NewReplica()
+		err27 := argvalue0.Read(jsProt26)
+		if err27 != nil {
+			Usage()
+			return
+		}
 		value0 := argvalue0
-		fmt.Print(client.GetStruct(value0))
+		fmt.Print(client.Add(value0))
+		fmt.Print("\n")
+		break
+	case "modify":
+		if flag.NArg()-1 != 1 {
+			fmt.Fprintln(os.Stderr, "Modify requires 1 args")
+			flag.Usage()
+		}
+		arg28 := flag.Arg(1)
+		mbTrans29 := thrift.NewTMemoryBufferLen(len(arg28))
+		defer mbTrans29.Close()
+		_, err30 := mbTrans29.WriteString(arg28)
+		if err30 != nil {
+			Usage()
+			return
+		}
+		factory31 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt32 := factory31.GetProtocol(mbTrans29)
+		argvalue0 := replica.NewReplica()
+		err33 := argvalue0.Read(jsProt32)
+		if err33 != nil {
+			Usage()
+			return
+		}
+		value0 := argvalue0
+		fmt.Print(client.Modify(value0))
+		fmt.Print("\n")
+		break
+	case "remove":
+		if flag.NArg()-1 != 1 {
+			fmt.Fprintln(os.Stderr, "Remove requires 1 args")
+			flag.Usage()
+		}
+		arg34 := flag.Arg(1)
+		mbTrans35 := thrift.NewTMemoryBufferLen(len(arg34))
+		defer mbTrans35.Close()
+		_, err36 := mbTrans35.WriteString(arg34)
+		if err36 != nil {
+			Usage()
+			return
+		}
+		factory37 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt38 := factory37.GetProtocol(mbTrans35)
+		argvalue0 := replica.NewReplica()
+		err39 := argvalue0.Read(jsProt38)
+		if err39 != nil {
+			Usage()
+			return
+		}
+		value0 := argvalue0
+		fmt.Print(client.Remove(value0))
+		fmt.Print("\n")
+		break
+	case "download":
+		if flag.NArg()-1 != 1 {
+			fmt.Fprintln(os.Stderr, "Download requires 1 args")
+			flag.Usage()
+		}
+		argvalue0 := flag.Arg(1)
+		value0 := argvalue0
+		fmt.Print(client.Download(value0))
 		fmt.Print("\n")
 		break
 	case "":

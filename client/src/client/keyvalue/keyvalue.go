@@ -30,7 +30,7 @@ type KeyValue struct {
 	pendingPersist chan *set
 }
 
-func Init(logDir string) (int, *KeyValue) {
+func Init(logDir string) *KeyValue {
 	log.Println("KeyValue starting at ", logDir)
 
 	server := &KeyValue{
@@ -60,7 +60,7 @@ func Init(logDir string) (int, *KeyValue) {
 	}()*/
 
 	log.Println("KeyValue accepting requests at ", logDir)
-	return 0, server
+	return server
 }
 
 func (s *KeyValue) recover() {

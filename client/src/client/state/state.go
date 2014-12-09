@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"client/keyvalue"
 	"client/settings"
 
 	"github.com/somethingnew2-0/go-erasure"
@@ -15,6 +16,7 @@ type StateMachine struct {
 	Options     *settings.Options
 	ErasureCode *erasure.Code
 	Cipher      cipher.Block
+	Files       *keyvalue.KeyValue
 	Recovered   bool // If user already existed, recover files
 	Initialized bool // If user didn't exist, upload initial files before watching
 	states      chan State
@@ -33,6 +35,7 @@ func NewStateMachine(opts *settings.Options) *StateMachine {
 		Options:     opts,
 		ErasureCode: erasure.NewCode(settings.M, settings.K, settings.BlockSize),
 		Cipher:      cipher,
+		Files:       keyvalue.InitFileKV(),
 		states:      make(chan State, settings.MaxStates),
 		workers:     0,
 	}
