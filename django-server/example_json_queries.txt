@@ -1,5 +1,7 @@
 http://localhost:8000/user/new
 
+{"user": {"files": null, "auth": "9915afffaa0b4b90adeacef5cb92aa68", "id": "4d2925202600415dabac3c4233de006f", "clientId": "8ad431c43d464ca396dc79f739de3723"}}
+
 {"user": {"files": null, "id": "108272a4df314fb1901abc4eb9be51d7", "clientId": "304f602c566f4875ae9bd16d8c74fc0b"}}
 
 {"user": {"files": null, "id": "2a1d048e2ca04f40ae4486d7d3a353fb", "clientId": "a66d591bf5ea47969856079f17e2b27e"}}
@@ -15,7 +17,7 @@ http://localhost:8000/client/c94f77b43df54e90832d258fa6237928/init
 
 {"usable": 341333, "system": 682667}
 ==============
-http://localhost:8000/client/c94f77b43df54e90832d258fa6237928/status
+http://localhost:8000/client/8ad431c43d464ca396dc79f739de3723/status
 
 {"new": false, "recovery": true}
 ==============

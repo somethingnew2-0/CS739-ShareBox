@@ -4,6 +4,9 @@ import uuid
 class User(object):
   def __init__(self):
     self.id = uuid.uuid4().hex
+    self.username = None
+    self.passwordHash = None
+    self.authToken = None
     self.clientId = None
     self.files = None
 

@@ -9,24 +9,64 @@ import consulate
 import json
 from models import *
 from random import shuffle
+import uuid
 
 # Create your views here.
 @csrf_exempt
 @require_POST
 @json_view
 def createUser(request):
-    user = User()
-    client = Client()
-    client.initStatus = 'new'
-    client.userId = user.id
-    consulWrite('Client', client)
-    user.clientId = client.id
+    data = json.loads(request.body)
+    username = data['username']
+    passwordHash = data['passwordHash']
+    user = consulFindByValue('User', 'username', username)
+
+    if user is not None:
+        authenticateUser(user, passwordHash)
+        client = consulRead('Client', user['clientId'])
+    else:
+        user = User().__dict__
+        client = Client().__dict__
+        client['initStatus'] = 'new'
+        client['userId'] = user['id']
+        consulWrite('Client', client)
+        user['clientId'] = client['id']
+        user['username'] = username
+        user['passwordHash'] = passwordHash
+    
+    user['authToken'] = uuid.uuid4().hex
     consulWrite('User', user)
-    return { 'user' : user.__dict__ }
+    return {
+        'user' : {
+            'files' : user['files'],
+            'id' : user['id'],
+            'clientId' : user['clientId'],
+            'auth' : user['authToken']
+        }
+    }
+
+def authenticateUser(user, passwordHash):
+    if user['passwordHash'] != passwordHash:
+        raise PermissionDenied()
+    else:
+        return True
+
+
+def authenticateRequest(request):
+    userId = request.META.get('HTTP_USERID', None)
+    authToken = request.META.get('HTTP_AUTH', None)
+    print request.META
+    if userId is None or authToken is None:
+        raise PermissionDenied()
+
+    user = consulRead('User', userId)
+    if user['authToken'] != authToken:
+        raise PermissionDenied()
 
 @require_safe
 @json_view
 def getClientInitStatus(request, clientId):
+    authenticateRequest(request)
     client = consulRead('Client', clientId)
     if client['initStatus'] == 'new':
         isNew = True
@@ -49,6 +89,7 @@ def getClientInitStatus(request, clientId):
 @require_safe
 @json_view
 def recoverClient(request, clientId):
+    authenticateRequest(request)
     client = consulRead('Client', clientId)
     if client['initStatus'] != 'recover': #TODO: Add security checks
         return {
@@ -64,6 +105,7 @@ def recoverClient(request, clientId):
 @require_POST
 @json_view
 def initClient(request, clientId):
+    authenticateRequest(request)
     client = consulRead('Client', clientId)
     if client['initStatus'] != 'new':
         return {
@@ -92,6 +134,7 @@ def initClient(request, clientId):
 @require_POST
 @json_view
 def addFile(request, clientId):
+    authenticateRequest(request)
     client = consulRead('Client', clientId)
     data = json.loads(request.body)
     availableSpace = int(client['userSpace']) - int(client['userReservedSpace'])
@@ -149,6 +192,7 @@ def addFile(request, clientId):
 @require_POST
 @json_view
 def updateFile(request, clientId):
+    authenticateRequest(request)
     client = consulRead('Client', clientId)
     data = json.loads(request.body)
     updateFile = consulRead('File', data['id'])
@@ -260,6 +304,7 @@ def shardsByStatus(shards):
 @require_POST
 @json_view
 def commitFile(request, fileId):
+    authenticateRequest(request)
     newFile = consulRead('File', fileId)
     data = json.loads(request.body)
     if newFile['status'] != 'added' or newFile['status'] != 'updated' or newFile['clientId'] != data['clientId']:
@@ -301,6 +346,7 @@ def batchCommitReservations(reservations):
 @require_POST
 @json_view
 def validateShard(request, shardId):
+    authenticateRequest(request)
     shard = consulRead('Shard',shardId)
     data = json.loads(request.body)
     receiverId = data['receiverId']
@@ -317,6 +363,7 @@ def validateShard(request, shardId):
 @require_POST
 @json_view
 def removeFile(request, clientId):
+    authenticateRequest(request)
     client = consulRead('Client', clientId)
     data = json.loads(request.body)
     newFile = consulRead('File', data['id'])
@@ -354,6 +401,7 @@ def removeFile(request, clientId):
 @require_POST
 @json_view
 def downloadFile(request, fileId):
+    authenticateRequest(request)
     dlFile = consulRead('File', fileId)
     data = json.loads(request.body)
     client = consulRead('Client', data['clientId'])
@@ -388,6 +436,7 @@ def downloadFile(request, fileId):
 @require_POST
 @json_view
 def deleteFile(request, fileId):
+    authenticateRequest(request)
     delFile = consulRead('File', fileId)
     data = json.loads(request.body)
     if delFile['status'] != 'removed' or delFile['clientId'] != data['clientId']:
@@ -432,6 +481,7 @@ def batchFreeSystemSpace(shardClients):
 @require_POST
 @json_view
 def invalidateShard(request, shardId):
+    authenticateRequest(request)
     shard = consulRead('Shard',shardId)
     data = json.loads(request.body)
     receiverId = data['receiverId']
@@ -577,3 +627,15 @@ def consulDelete(root, id):
         del s.kv[root + '/' + id]
     except AttributeError:
         raise Http404
+
+def consulFindByValue(root, field, value):
+    s = getConsulateSession()
+    objects = s.kv.find(root).values()
+    returnObj = None
+    for obj in objects:
+        objVal = obj.get(field, None)
+        if  objVal == value:
+            returnObj = obj
+            break
+
+    return returnObj
