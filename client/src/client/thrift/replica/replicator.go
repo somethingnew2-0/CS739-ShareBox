@@ -23,11 +23,11 @@ type Replicator interface {
 	//  - R
 	Modify(r *Replica) (iv *InvalidOperation, err error)
 	// Parameters:
-	//  - R
-	Remove(r *Replica) (iv *InvalidOperation, err error)
+	//  - ShardId
+	Remove(shardId string) (iv *InvalidOperation, err error)
 	// Parameters:
-	//  - Hash
-	Download(hash string) (r *Replica, iv *InvalidOperation, err error)
+	//  - ShardId
+	Download(shardId string) (r *Replica, iv *InvalidOperation, err error)
 }
 
 type ReplicatorClient struct {
@@ -234,15 +234,15 @@ func (p *ReplicatorClient) recvModify() (iv *InvalidOperation, err error) {
 }
 
 // Parameters:
-//  - R
-func (p *ReplicatorClient) Remove(r *Replica) (iv *InvalidOperation, err error) {
-	if err = p.sendRemove(r); err != nil {
+//  - ShardId
+func (p *ReplicatorClient) Remove(shardId string) (iv *InvalidOperation, err error) {
+	if err = p.sendRemove(shardId); err != nil {
 		return
 	}
 	return p.recvRemove()
 }
 
-func (p *ReplicatorClient) sendRemove(r *Replica) (err error) {
+func (p *ReplicatorClient) sendRemove(shardId string) (err error) {
 	oprot := p.OutputProtocol
 	if oprot == nil {
 		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
@@ -251,7 +251,7 @@ func (p *ReplicatorClient) sendRemove(r *Replica) (err error) {
 	p.SeqId++
 	oprot.WriteMessageBegin("remove", thrift.CALL, p.SeqId)
 	args12 := NewRemoveArgs()
-	args12.R = r
+	args12.ShardId = shardId
 	err = args12.Write(oprot)
 	oprot.WriteMessageEnd()
 	oprot.Flush()
@@ -295,15 +295,15 @@ func (p *ReplicatorClient) recvRemove() (iv *InvalidOperation, err error) {
 }
 
 // Parameters:
-//  - Hash
-func (p *ReplicatorClient) Download(hash string) (r *Replica, iv *InvalidOperation, err error) {
-	if err = p.sendDownload(hash); err != nil {
+//  - ShardId
+func (p *ReplicatorClient) Download(shardId string) (r *Replica, iv *InvalidOperation, err error) {
+	if err = p.sendDownload(shardId); err != nil {
 		return
 	}
 	return p.recvDownload()
 }
 
-func (p *ReplicatorClient) sendDownload(hash string) (err error) {
+func (p *ReplicatorClient) sendDownload(shardId string) (err error) {
 	oprot := p.OutputProtocol
 	if oprot == nil {
 		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
@@ -312,7 +312,7 @@ func (p *ReplicatorClient) sendDownload(hash string) (err error) {
 	p.SeqId++
 	oprot.WriteMessageBegin("download", thrift.CALL, p.SeqId)
 	args16 := NewDownloadArgs()
-	args16.Hash = hash
+	args16.ShardId = shardId
 	err = args16.Write(oprot)
 	oprot.WriteMessageEnd()
 	oprot.Flush()
@@ -550,7 +550,7 @@ func (p *replicatorProcessorRemove) Process(seqId int32, iprot, oprot thrift.TPr
 	}
 	iprot.ReadMessageEnd()
 	result := NewRemoveResult()
-	if result.Iv, err = p.handler.Remove(args.R); err != nil {
+	if result.Iv, err = p.handler.Remove(args.ShardId); err != nil {
 		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing remove: "+err.Error())
 		oprot.WriteMessageBegin("remove", thrift.EXCEPTION, seqId)
 		x.Write(oprot)
@@ -593,7 +593,7 @@ func (p *replicatorProcessorDownload) Process(seqId int32, iprot, oprot thrift.T
 	}
 	iprot.ReadMessageEnd()
 	result := NewDownloadResult()
-	if result.Success, result.Iv, err = p.handler.Download(args.Hash); err != nil {
+	if result.Success, result.Iv, err = p.handler.Download(args.ShardId); err != nil {
 		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing download: "+err.Error())
 		oprot.WriteMessageBegin("download", thrift.EXCEPTION, seqId)
 		x.Write(oprot)
@@ -1070,7 +1070,7 @@ func (p *ModifyResult) String() string {
 }
 
 type RemoveArgs struct {
-	R *Replica `thrift:"r,1"`
+	ShardId string `thrift:"shardId,1"`
 }
 
 func NewRemoveArgs() *RemoveArgs {
@@ -1110,9 +1110,10 @@ func (p *RemoveArgs) Read(iprot thrift.TProtocol) error {
 }
 
 func (p *RemoveArgs) readField1(iprot thrift.TProtocol) error {
-	p.R = NewReplica()
-	if err := p.R.Read(iprot); err != nil {
-		return fmt.Errorf("%T error reading struct: %s", p.R)
+	if v, err := iprot.ReadString(); err != nil {
+		return fmt.Errorf("error reading field 1: %s")
+	} else {
+		p.ShardId = v
 	}
 	return nil
 }
@@ -1134,16 +1135,14 @@ func (p *RemoveArgs) Write(oprot thrift.TProtocol) error {
 }
 
 func (p *RemoveArgs) writeField1(oprot thrift.TProtocol) (err error) {
-	if p.R != nil {
-		if err := oprot.WriteFieldBegin("r", thrift.STRUCT, 1); err != nil {
-			return fmt.Errorf("%T write field begin error 1:r: %s", p, err)
-		}
-		if err := p.R.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", p.R)
-		}
-		if err := oprot.WriteFieldEnd(); err != nil {
-			return fmt.Errorf("%T write field end error 1:r: %s", p, err)
-		}
+	if err := oprot.WriteFieldBegin("shardId", thrift.STRING, 1); err != nil {
+		return fmt.Errorf("%T write field begin error 1:shardId: %s", p, err)
+	}
+	if err := oprot.WriteString(string(p.ShardId)); err != nil {
+		return fmt.Errorf("%T.shardId (1) field write error: %s", p)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return fmt.Errorf("%T write field end error 1:shardId: %s", p, err)
 	}
 	return err
 }
@@ -1245,7 +1244,7 @@ func (p *RemoveResult) String() string {
 }
 
 type DownloadArgs struct {
-	Hash string `thrift:"hash,1"`
+	ShardId string `thrift:"shardId,1"`
 }
 
 func NewDownloadArgs() *DownloadArgs {
@@ -1288,7 +1287,7 @@ func (p *DownloadArgs) readField1(iprot thrift.TProtocol) error {
 	if v, err := iprot.ReadString(); err != nil {
 		return fmt.Errorf("error reading field 1: %s")
 	} else {
-		p.Hash = v
+		p.ShardId = v
 	}
 	return nil
 }
@@ -1310,14 +1309,14 @@ func (p *DownloadArgs) Write(oprot thrift.TProtocol) error {
 }
 
 func (p *DownloadArgs) writeField1(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("hash", thrift.STRING, 1); err != nil {
-		return fmt.Errorf("%T write field begin error 1:hash: %s", p, err)
+	if err := oprot.WriteFieldBegin("shardId", thrift.STRING, 1); err != nil {
+		return fmt.Errorf("%T write field begin error 1:shardId: %s", p, err)
 	}
-	if err := oprot.WriteString(string(p.Hash)); err != nil {
-		return fmt.Errorf("%T.hash (1) field write error: %s", p)
+	if err := oprot.WriteString(string(p.ShardId)); err != nil {
+		return fmt.Errorf("%T.shardId (1) field write error: %s", p)
 	}
 	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 1:hash: %s", p, err)
+		return fmt.Errorf("%T write field end error 1:shardId: %s", p, err)
 	}
 	return err
 }

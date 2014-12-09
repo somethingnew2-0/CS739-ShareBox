@@ -54,6 +54,7 @@ func (u Upload) Run(sm *StateMachine) {
 				if block.Id == blockId {
 					shard := block.Shards[offset]
 					shard.Id = client["id"]
+					// TODO Validate this an IP address using net.IP
 					shard.IP = client["IP"]
 					break
 				}

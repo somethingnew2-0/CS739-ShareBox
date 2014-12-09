@@ -22,6 +22,6 @@ service Replicator {
    void ping(),
    void add(1:Replica r) throws (1:InvalidOperation iv),
    void modify(1:Replica r) throws (1:InvalidOperation iv),
-   void remove(1:Replica r) throws (1:InvalidOperation iv),
-   Replica download(1:string hash) throws (1:InvalidOperation iv),
+   void remove(1:string shardId) throws (1:InvalidOperation iv),
+   Replica download(1:string shardId) throws (1:InvalidOperation iv),
 }
