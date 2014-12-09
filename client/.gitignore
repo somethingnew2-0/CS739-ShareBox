@@ -4,4 +4,5 @@ src/gopkg.in/**
 src/git.apache.org/**
 
 data/**
+log/**
 config.json
