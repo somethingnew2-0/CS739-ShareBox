@@ -55,7 +55,6 @@ def authenticateUser(user, passwordHash):
 def authenticateRequest(request):
     userId = request.META.get('HTTP_USERID', None)
     authToken = request.META.get('HTTP_AUTH', None)
-    print request.META
     if userId is None or authToken is None:
         raise PermissionDenied()
 
@@ -101,6 +100,14 @@ def recoverClient(request, clientId):
         'fileList' : user['files']
     }
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
 @csrf_exempt
 @require_POST
 @json_view
@@ -113,7 +120,7 @@ def initClient(request, clientId):
             'error' : 500
         }
     data = json.loads(request.body)
-    client['ip'] = data['IP']
+    client['ip'] = get_client_ip(request)
     totalSpace = int(data['space'])
     client['userQuota'] = totalSpace / REPLICATION_FACTOR
     client['systemQuota'] = totalSpace - client['userQuota']
