@@ -3,6 +3,9 @@ package keyvalue
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+
+	"client/settings"
 )
 
 type Replica struct {
@@ -12,6 +15,14 @@ type Replica struct {
 	BlockId     string `json:"blockId"`
 	FileId      string `json:"fileId"`
 	ClientId    string `json:"clientId"`
+}
+
+func (r Replica) GetPath() string {
+	firstTwo := r.ShardId[:2]
+	secondTwo := r.ShardId[2:4]
+	fileName := r.ShardId[4:]
+
+	return fmt.Sprintf("%s/%s/%s/%s", settings.ReplicasPath, firstTwo, secondTwo, fileName)
 }
 
 func InitReplicaKV() *KeyValue {
