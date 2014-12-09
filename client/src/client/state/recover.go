@@ -28,12 +28,8 @@ func (r Recover) Run(sm *StateMachine) {
 		log.Println("Unable to connect to server to recover a file: ", err)
 		return
 	}
-	if allowed, err := strconv.ParseBool(resp["allowed"].(string)); err == nil && allowed {
-		file.Size, err = strconv.ParseInt(resp["size"].(string), 10, 64)
-		if err != nil {
-			log.Println("Cannot parse file size", err)
-			return
-		}
+	if resp["allowed"].(bool) {
+		file.Size = resp["size"].(int64)
 
 		blockIds := resp["blocks"].([]string)
 		for _, blockId := range blockIds {

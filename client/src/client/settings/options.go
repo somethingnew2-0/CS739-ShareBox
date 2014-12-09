@@ -13,7 +13,7 @@ type Options struct {
 	Password string `json:"password" short:"p" long:"password" default:"test" description:"Password to encrpyt file with"`
 	Hash     []byte `json:"hash" short:"h" long:"hash" description:"Calcuated password hash to encrpyt file with"`
 	ClientId string `json:"clientid" short:"c" long:"cid" description:"Client Id unique to this machine"`
-	UserId   string `json:"userid" short:"u" long:"uid" description:"User Id unique to the user running using the client"`
+	UserId   string `json:"userid" long:"uid" description:"User Id unique to the user running using the client"`
 }
 
 func (o *Options) Load() {

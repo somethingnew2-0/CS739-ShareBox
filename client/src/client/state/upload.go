@@ -34,7 +34,7 @@ func (u Upload) Run(sm *StateMachine) {
 		return
 	}
 
-	if allowed, err := strconv.ParseBool(resp["allowed"].(string)); err == nil && allowed {
+	if resp["allowed"].(bool) {
 		file := u.File
 		file.Id = resp["id"].(string)
 		blockIds := resp["blocks"].([]string)

@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"client/keyvalue"
 	"client/settings"
@@ -43,14 +42,8 @@ func (i Init) Run(sm *StateMachine) {
 	if err != nil {
 		log.Fatal("Couldn't get status of client from server: ", err)
 	}
-	fresh, err := strconv.ParseBool(resp["new"].(string))
-	if err != nil {
-		log.Fatal("Can't parse client status: ", err)
-	}
-	recovery, err := strconv.ParseBool(resp["recovery"].(string))
-	if err != nil {
-		log.Fatal("Can't parse client status: ", err)
-	}
+	fresh := resp["new"].(bool)
+	recovery := resp["recovery"].(bool)
 
 	if fresh {
 		err = filepath.Walk(sm.Options.Dir, func(path string, info os.FileInfo, err error) error {
@@ -78,7 +71,7 @@ func (i Init) Run(sm *StateMachine) {
 		if err != nil {
 			log.Fatal("Unable to connect to server to recover files: ", err)
 		}
-		if allowed, err := strconv.ParseBool(resp["allowed"].(string)); err == nil && allowed {
+		if resp["allowed"].(bool) {
 			files := resp["fileList"].([]map[string]string)
 			for _, file := range files {
 				sm.Add(Recover{File: &keyvalue.File{Id: file["id"], Name: file["name"], Hash: file["hash"]}})
