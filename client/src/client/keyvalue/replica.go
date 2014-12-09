@@ -20,10 +20,7 @@ func InitReplicaKV() *KeyValue {
 
 func (kv KeyValue) GetReplica(shardId string) (*Replica, error) {
 	status, replicaJson := kv.Get(shardId)
-	if status != 0 {
-		return nil, errors.New("Replica doesn't exist in the key value store")
-	}
-	if replicaJson == "" {
+	if status != 0 || replicaJson == "" {
 		return nil, errors.New("Replica doesn't exist in the key value store")
 	}
 	replica := &Replica{}
