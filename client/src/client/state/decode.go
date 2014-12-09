@@ -15,15 +15,14 @@ type Decode struct {
 
 func (d Decode) Run(sm *StateMachine) {
 	decrypt := &Decrypt{
-		File:          d.File,
-		DecodedBlocks: make([][]byte, len(d.EncodedBlocks)),
+		File: d.File,
 	}
 	for b, block := range d.EncodedBlocks {
 		if len(d.BlockErrs[b]) > settings.M-settings.K {
 			log.Println("Too many errors cannot recover file: ", d.File.Name)
 			return
 		}
-		decrypt.DecodedBlocks[b] = sm.ErasureCode.Decode(block, d.BlockErrs[b])
+		decrypt.Ciphertext = append(decrypt.Ciphertext, sm.ErasureCode.Decode(block, d.BlockErrs[b])...)
 	}
 	sm.Add(decrypt)
 }
