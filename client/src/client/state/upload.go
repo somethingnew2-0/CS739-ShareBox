@@ -30,7 +30,7 @@ func (u Upload) Run(sm *StateMachine) {
 
 	resp, err := util.Post(fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), url.Values{"Request": {string(fileJson)}})
 	if err != nil {
-		log.Println("Error adding new file", err)
+		log.Println("Error adding file", err)
 		return
 	}
 
@@ -109,7 +109,19 @@ func (u Upload) Run(sm *StateMachine) {
 			}
 		}
 
-		sm.Files.SetFile(file.Name, file)
+		resp, err := util.Post(fmt.Sprintf("file/%s/commit", file.Id), url.Values{"clientId": {sm.Options.ClientId}})
+		if err != nil {
+			log.Println("Error commiting file", err)
+			return
+		}
+
+		if resp["success"].(bool) {
+
+			sm.Files.SetFile(file.Name, file)
+		} else {
+			log.Println("Commiting file was unsuccessful", err)
+
+		}
 	} else {
 		log.Println("File upload not allowed")
 		return

@@ -23,8 +23,8 @@ type File struct {
 	Id            string  `json:"id"`
 	Name          string  `json:"name"`
 	Hash          string  `json:"hash"`
-	EncodedSize   int64   `json:"encoded_size"`
-	UnencodedSize int64   `json:"unencoded_size"`
+	EncodedSize   int64   `json:"size"`
+	UnencodedSize int64   `json:"originalSize"`
 	Blocks        []Block `json:"blocks"`
 }
 
