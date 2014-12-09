@@ -14,14 +14,10 @@ struct Replica {
   7: string clientId,
 }
 
-exception InvalidOperation {
-  1: string why
-}
-
 service Replicator {
    void ping(),
-   void add(1:Replica r) throws (1:InvalidOperation iv),
-   void modify(1:Replica r) throws (1:InvalidOperation iv),
-   void remove(1:Replica r) throws (1:InvalidOperation iv),
-   Replica download(1:string hash) throws (1:InvalidOperation iv),
+   void add(1:Replica r) 
+   void modify(1:Replica r) 
+   void remove(1:string shardId) 
+   Replica download(1:string shardId) 
 }

@@ -1,8 +1,6 @@
 package state
 
 import (
-	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -10,6 +8,7 @@ import (
 
 	"client/keyvalue"
 	"client/settings"
+	"client/thrift/pool"
 	"client/thrift/replica"
 	"client/util"
 
@@ -22,13 +21,7 @@ type Upload struct {
 }
 
 func (u Upload) Run(sm *StateMachine) {
-	fileJson, err := json.Marshal(u.File)
-	if err != nil {
-		log.Println("Error json encoding file", err)
-		return
-	}
-
-	resp, err := util.Post(fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), url.Values{"Request": {string(fileJson)}})
+	resp, err := util.Post(fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), u.File)
 	if err != nil {
 		log.Println("Error adding file", err)
 		return
@@ -54,44 +47,30 @@ func (u Upload) Run(sm *StateMachine) {
 				if block.Id == blockId {
 					shard := block.Shards[offset]
 					shard.Id = client["id"]
+					// TODO Validate this an IP address using net.IP
 					shard.IP = client["IP"]
 					break
 				}
 			}
 		}
 
-		transports := make(map[string]thrift.TTransport)
-		transportFactory := thrift.NewTBufferedTransportFactory(10000)
+		transportPool := pool.NewTransportPool(thrift.NewTBufferedTransportFactory(10000))
+		defer transportPool.CloseAll()
 		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
 
 		for b, block := range file.Blocks {
 			for s, shard := range block.Shards {
-				transport := transports[shard.IP]
-				if transport == nil {
-					addr := fmt.Sprintf("%s:%d", shard.IP, settings.ClientPort)
-					if settings.ClientTLS {
-						cfg := new(tls.Config)
-						cfg.InsecureSkipVerify = true
-						transport, err = thrift.NewTSSLSocket(addr, cfg)
-					} else {
-						transport, err = thrift.NewTSocket(addr)
-					}
-					if err != nil {
-						log.Println("Error opening socket:", err)
-						break
-					}
-					transport = transportFactory.GetTransport(transport)
-					defer transport.Close()
-					if err := transport.Open(); err != nil {
-						break
-					}
-					transports[shard.IP] = transport
+				transport, err := transportPool.GetTransport(shard.IP)
+				if err != nil {
+					log.Println("Error opening connection to ", shard.IP, err)
+					continue
 				}
+
 				client := replica.NewReplicatorClientFactory(transport, protocolFactory)
 				client.Ping()
 
 				shardData := u.EncodedBlocks[b][s*settings.ShardLength : (s+1)*settings.ShardLength]
-				iv, err := client.Add(&replica.Replica{
+				err = client.Add(&replica.Replica{
 					Shard:       shardData,
 					ShardHash:   shard.Hash,
 					ShardOffset: int32(s),
@@ -101,9 +80,7 @@ func (u Upload) Run(sm *StateMachine) {
 					ClientId:    sm.Options.ClientId,
 				})
 
-				if iv != nil {
-					log.Println("Invalid operation:", iv)
-				} else if err != nil {
+				if err != nil {
 					log.Println("Error during upload", err)
 				}
 			}

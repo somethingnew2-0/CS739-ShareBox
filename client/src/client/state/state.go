@@ -17,6 +17,7 @@ type StateMachine struct {
 	ErasureCode *erasure.Code
 	Cipher      cipher.Block
 	Files       *keyvalue.KeyValue
+	Replicas    *keyvalue.KeyValue
 	Recovered   bool // If user already existed, recover files
 	Initialized bool // If user didn't exist, upload initial files before watching
 	states      chan State
@@ -36,6 +37,7 @@ func NewStateMachine(opts *settings.Options) *StateMachine {
 		ErasureCode: erasure.NewCode(settings.M, settings.K, settings.BlockSize),
 		Cipher:      cipher,
 		Files:       keyvalue.InitFileKV(),
+		Replicas:    keyvalue.InitReplicaKV(),
 		states:      make(chan State, settings.MaxStates),
 		workers:     0,
 	}

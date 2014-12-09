@@ -148,7 +148,11 @@ func (s *KeyValue) recover() {
 func (s *KeyValue) set() {
 	for set := range s.pending {
 		s.storeLock.Lock()
-		s.store[set.Key] = set.Value
+		if set.Value == "" {
+			delete(s.store, set.Key)
+		} else {
+			s.store[set.Key] = set.Value
+		}
 		s.storeLock.Unlock()
 
 		s.pendingPersist <- set

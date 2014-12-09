@@ -2,15 +2,12 @@ package state
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"math"
 	"net/url"
 	"os"
 	"path/filepath"
 
 	"client/keyvalue"
-	"client/settings"
 	"client/util"
 )
 
@@ -21,7 +18,7 @@ func (i Init) Run(sm *StateMachine) {
 	sm.Options.Load()
 	if sm.Options.ClientId == "" || sm.Options.UserId == "" {
 		sm.Options.HashPassword()
-		resp, err := util.Post("user/new", url.Values{"username": {}, "password": {string(sm.Options.Hash)}})
+		resp, err := util.PostForm("user/new", url.Values{"username": {}, "password": {string(sm.Options.Hash)}})
 		if err != nil {
 			log.Fatal("Couldn't connect and create new user with server: ", err)
 		}
@@ -32,7 +29,7 @@ func (i Init) Run(sm *StateMachine) {
 		sm.Options.Save()
 
 		// TODO: Actually get user's available disk space (instead of just 1GB)
-		resp, err = util.Post(fmt.Sprintf("client/%s/init", sm.Options.ClientId), url.Values{"space": {string(1 << 30)}})
+		resp, err = util.PostForm(fmt.Sprintf("client/%s/init", sm.Options.ClientId), url.Values{"space": {string(1 << 30)}})
 		if err != nil {
 			log.Fatal("Couldn't init client with server: ", err)
 		}
@@ -48,17 +45,7 @@ func (i Init) Run(sm *StateMachine) {
 	if fresh {
 		err = filepath.Walk(sm.Options.Dir, func(path string, info os.FileInfo, err error) error {
 			if !info.IsDir() {
-				encrypt := &Encrypt{}
-
-				blocks := math.Ceil(float64(info.Size()) / float64(settings.BlockSize))
-
-				// Use encoded file size
-				encrypt.File = &keyvalue.File{Name: path, EncodedSize: int64(blocks) * settings.BlockSize, UnencodedSize: info.Size()}
-				if f, err := os.Open(path); err == nil {
-					zeroBytes := (int64(blocks) * settings.BlockSize) - info.Size()
-					data, _ := ioutil.ReadAll(f)
-					encrypt.Plaintext = append(data, make([]byte, zeroBytes)...)
-				}
+				sm.Add(&Create{Path: path, Info: info})
 			}
 			return nil
 		})
@@ -80,4 +67,5 @@ func (i Init) Run(sm *StateMachine) {
 	}
 	sm.Add(Watch{})
 	sm.Add(Health{})
+	// TODO: Run replica server
 }

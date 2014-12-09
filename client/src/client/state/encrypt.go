@@ -11,6 +11,8 @@ type Encrypt struct {
 
 func (e Encrypt) Run(sm *StateMachine) {
 	encode := &Encode{File: e.File, Ciphertext: make([]byte, len(e.Plaintext))}
-	sm.Cipher.Encrypt(encode.Ciphertext, e.Plaintext)
+	if len(e.Plaintext) > 0 {
+		sm.Cipher.Encrypt(encode.Ciphertext, e.Plaintext)
+	}
 	sm.Add(encode)
 }

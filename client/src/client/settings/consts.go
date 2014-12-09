@@ -9,6 +9,8 @@ const (
 	ClientTLS  = false
 	ClientPort = 12345
 
+	ReplicasPath = "replicas/"
+
 	MinimumWorkers = 8
 	MaxStates      = 256
 

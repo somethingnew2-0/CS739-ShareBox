@@ -34,7 +34,7 @@ func InitFileKV() *KeyValue {
 
 func (kv KeyValue) GetFile(path string) (*File, error) {
 	status, fileJson := kv.Get(path)
-	if status != 0 {
+	if status != 0 || fileJson == "" {
 		return nil, errors.New("File doesn't exist in the key value store")
 	}
 	file := &File{}
@@ -43,9 +43,13 @@ func (kv KeyValue) GetFile(path string) (*File, error) {
 }
 
 func (kv KeyValue) SetFile(path string, file *File) error {
-	fileJson, err := json.Marshal(file)
-	if err != nil {
-		return err
+	fileJson := []byte("")
+	if file != nil {
+		var err error
+		fileJson, err = json.Marshal(file)
+		if err != nil {
+			return err
+		}
 	}
 	status, _ := kv.Set(path, string(fileJson))
 

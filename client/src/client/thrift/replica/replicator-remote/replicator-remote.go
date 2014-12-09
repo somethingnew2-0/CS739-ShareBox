@@ -23,8 +23,8 @@ func Usage() {
 	fmt.Fprintln(os.Stderr, "  void ping()")
 	fmt.Fprintln(os.Stderr, "  void add(Replica r)")
 	fmt.Fprintln(os.Stderr, "  void modify(Replica r)")
-	fmt.Fprintln(os.Stderr, "  void remove(Replica r)")
-	fmt.Fprintln(os.Stderr, "  Replica download(string hash)")
+	fmt.Fprintln(os.Stderr, "  void remove(string shardId)")
+	fmt.Fprintln(os.Stderr, "  Replica download(string shardId)")
 	fmt.Fprintln(os.Stderr)
 	os.Exit(0)
 }
@@ -182,22 +182,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Remove requires 1 args")
 			flag.Usage()
 		}
-		arg34 := flag.Arg(1)
-		mbTrans35 := thrift.NewTMemoryBufferLen(len(arg34))
-		defer mbTrans35.Close()
-		_, err36 := mbTrans35.WriteString(arg34)
-		if err36 != nil {
-			Usage()
-			return
-		}
-		factory37 := thrift.NewTSimpleJSONProtocolFactory()
-		jsProt38 := factory37.GetProtocol(mbTrans35)
-		argvalue0 := replica.NewReplica()
-		err39 := argvalue0.Read(jsProt38)
-		if err39 != nil {
-			Usage()
-			return
-		}
+		argvalue0 := flag.Arg(1)
 		value0 := argvalue0
 		fmt.Print(client.Remove(value0))
 		fmt.Print("\n")

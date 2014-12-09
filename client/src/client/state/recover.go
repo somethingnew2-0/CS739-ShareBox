@@ -3,7 +3,6 @@ package state
 import (
 	"crypto/sha256"
 	"crypto/subtle"
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 
 	"client/keyvalue"
 	"client/settings"
+	"client/thrift/pool"
 	"client/thrift/replica"
 	"client/util"
 
@@ -56,8 +56,8 @@ func (r Recover) Run(sm *StateMachine) {
 			}
 		}
 
-		transports := make(map[string]thrift.TTransport)
-		transportFactory := thrift.NewTBufferedTransportFactory(10000)
+		transportPool := pool.NewTransportPool(thrift.NewTBufferedTransportFactory(10000))
+		defer transportPool.CloseAll()
 		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
 
 		decode := &Decode{
@@ -68,35 +68,17 @@ func (r Recover) Run(sm *StateMachine) {
 
 		for b, block := range file.Blocks {
 			for _, shard := range block.Shards {
-				transport := transports[shard.IP]
-				if transport == nil {
-					addr := fmt.Sprintf("%s:%d", shard.IP, settings.ClientPort)
-					if settings.ClientTLS {
-						cfg := new(tls.Config)
-						cfg.InsecureSkipVerify = true
-						transport, err = thrift.NewTSSLSocket(addr, cfg)
-					} else {
-						transport, err = thrift.NewTSocket(addr)
-					}
-					if err != nil {
-						log.Println("Error opening socket:", err)
-						break
-					}
-					transport = transportFactory.GetTransport(transport)
-					defer transport.Close()
-					if err := transport.Open(); err != nil {
-						break
-					}
-					transports[shard.IP] = transport
+				transport, err := transportPool.GetTransport(shard.IP)
+				if err != nil {
+					log.Println("Error opening connection to ", shard.IP, err)
+					continue
 				}
+
 				client := replica.NewReplicatorClientFactory(transport, protocolFactory)
 				client.Ping()
 
-				replica, iv, err := client.Download(shard.Id)
-				if iv != nil {
-					log.Println("Invalid operation:", iv)
-					decode.BlockErrs[b] = append(decode.BlockErrs[b], byte(b))
-				} else if err != nil {
+				replica, err := client.Download(shard.Id)
+				if err != nil {
 					log.Println("Error during download:", err)
 					decode.BlockErrs[b] = append(decode.BlockErrs[b], byte(b))
 				} else {
