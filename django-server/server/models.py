@@ -9,6 +9,9 @@ class User(object):
     self.authToken = None
     self.clientId = None
     self.files = None
+    self.apiCredits = 15
+    self.apiChallenge = None
+    self.apiResponse = None
 
 class File(object):
   def __init__(self):
