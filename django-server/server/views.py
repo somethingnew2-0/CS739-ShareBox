@@ -62,6 +62,13 @@ def authenticateRequest(request):
     if user['authToken'] != authToken:
         raise PermissionDenied()
 
+# def apiChallenge(user):
+#     credits = int(user['apiCredits'])
+#     credits -= 1;
+#     if credits > 0 and credits
+
+
+
 @require_safe
 @json_view
 def getClientInitStatus(request, clientId):
@@ -370,7 +377,8 @@ def validateShard(request, shardId):
     receiverId = data['receiverId']
     if shard['clientId'] == receiverId :
         return {
-            'accept' : True
+            'accept' : True,
+            'hash' : shard['hash']
         }
     else:
         return {
