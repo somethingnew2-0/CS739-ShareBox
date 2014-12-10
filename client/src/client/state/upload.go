@@ -40,10 +40,9 @@ func (u Upload) Run(sm *StateMachine) {
 			offset := int(client["offset"].(float64))
 			for _, block := range file.Blocks {
 				if block.Id == blockId {
-					shard := block.Shards[offset]
-					shard.Id = client["id"].(string)
+					block.Shards[offset].Id = client["id"].(string)
 					// TODO Validate this an IP address using net.IP
-					shard.IP = client["IP"].(string)
+					block.Shards[offset].IP = client["IP"].(string)
 					break
 				}
 			}

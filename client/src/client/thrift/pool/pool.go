@@ -39,7 +39,8 @@ func (tp TransportPool) GetTransport(ip string) (thrift.TTransport, error) {
 		if err := transport.Open(); err != nil {
 			return nil, err
 		}
-		tp.transports[ip] = transport
+		// TODO: Actually figure out caching later
+		// tp.transports[ip] = transport
 	}
 	return transport, nil
 }

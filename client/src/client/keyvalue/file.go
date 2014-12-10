@@ -52,10 +52,6 @@ func (kv KeyValue) SetFile(path string, file *File) error {
 			return err
 		}
 	}
-	status, _ := kv.Set(path, string(fileJson))
-
-	if status != 0 {
-		return errors.New("Error in setting File in the key value store")
-	}
+	kv.Set(path, string(fileJson))
 	return nil
 }

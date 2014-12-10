@@ -37,10 +37,6 @@ func (kv KeyValue) SetReplica(shardId string, replica *Replica) error {
 			return err
 		}
 	}
-	status, _ := kv.Set(shardId, string(replicaJson))
-
-	if status != 0 {
-		return errors.New("Error in setting Replica in the key value store")
-	}
+	kv.Set(shardId, string(replicaJson))
 	return nil
 }
