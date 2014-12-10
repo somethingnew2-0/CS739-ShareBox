@@ -67,5 +67,5 @@ func (i Init) Run(sm *StateMachine) {
 	}
 	sm.Add(Watch{})
 	sm.Add(Health{})
-	// TODO: Run replica server
+	sm.Add(Replica{})
 }

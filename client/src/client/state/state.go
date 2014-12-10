@@ -3,6 +3,7 @@ package state
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"log"
 	"sync/atomic"
 	"time"
 
@@ -18,8 +19,6 @@ type StateMachine struct {
 	Cipher      cipher.Block
 	Files       *keyvalue.KeyValue
 	Replicas    *keyvalue.KeyValue
-	Recovered   bool // If user already existed, recover files
-	Initialized bool // If user didn't exist, upload initial files before watching
 	states      chan State
 	workers     uint32
 }
@@ -30,7 +29,10 @@ type State interface {
 
 func NewStateMachine(opts *settings.Options) *StateMachine {
 	opts.HashPassword()
-	cipher, _ := aes.NewCipher(opts.Hash)
+	cipher, err := aes.NewCipher(opts.Hash[:32])
+	if err != nil {
+		log.Fatal("Error creating aes cipher ", err)
+	}
 
 	return &StateMachine{
 		Options:     opts,

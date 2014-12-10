@@ -10,6 +10,7 @@ type Shard struct {
 	Hash   string `json:"hash"`
 	Offset int64  `json:"offset"`
 	IP     string `json:"ip"`
+	Size   int64  `json:"size"`
 }
 
 type Block struct {

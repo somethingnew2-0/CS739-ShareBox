@@ -3,7 +3,6 @@ package state
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"client/keyvalue"
 	"client/settings"
@@ -29,25 +28,22 @@ func (u Upload) Run(sm *StateMachine) {
 	if resp["allowed"].(bool) {
 		file := u.File
 		file.Id = resp["id"].(string)
-		blockIds := resp["blocks"].([]string)
+		blockIds := resp["blocks"].([]interface{})
 		for i, blockId := range blockIds {
-			file.Blocks[i].Id = blockId
+			file.Blocks[i].Id = blockId.(string)
 		}
 
-		clients := resp["clients"].([]map[string]string)
-		for _, client := range clients {
+		clients := resp["clients"].([]interface{})
+		for _, c := range clients {
+			client := c.(map[string]interface{})
 			blockId := client["blockId"]
-			offset, err := strconv.ParseInt(client["offset"], 10, 64)
-			if err != nil {
-				log.Println("Cannot parse shard offset", err)
-				break
-			}
+			offset := int(client["offset"].(float64))
 			for _, block := range file.Blocks {
 				if block.Id == blockId {
 					shard := block.Shards[offset]
-					shard.Id = client["id"]
+					shard.Id = client["id"].(string)
 					// TODO Validate this an IP address using net.IP
-					shard.IP = client["IP"]
+					shard.IP = client["IP"].(string)
 					break
 				}
 			}
@@ -92,7 +88,6 @@ func (u Upload) Run(sm *StateMachine) {
 		}
 
 		if resp["success"].(bool) {
-
 			sm.Files.SetFile(file.Name, file)
 		} else {
 			log.Println("Commiting file was unsuccessful", err)
