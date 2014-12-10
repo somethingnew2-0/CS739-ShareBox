@@ -113,7 +113,7 @@ def initClient(request, clientId):
             'error' : 500
         }
     data = json.loads(request.body)
-    client['ip'] = data['IP']
+    client['ip'] = get_client_ip(request)
     totalSpace = int(data['space'])
     client['userQuota'] = totalSpace / REPLICATION_FACTOR
     client['systemQuota'] = totalSpace - client['userQuota']
@@ -129,6 +129,14 @@ def initClient(request, clientId):
         'usable' : client['userSpace'],
         'system' : client['systemSpace']
     }
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 @csrf_exempt
 @require_POST
@@ -152,12 +160,15 @@ def addFile(request, clientId):
     newFile = File()
     newFile.name = str(data['name'])
     newFile.size = int(data['size'])
+    newFile.originalSize = int(data['originalSize'])
     newFile.status = 'added'
     newFile.clientId = clientId
     newFile.blocks = []
+    newFile.hash = data['hash']
 
-    for blockInfo in data['blocks']:
-        addBlock(blockInfo, newFile)
+    if data['blocks'] is not None:
+        for blockInfo in data['blocks']:
+            addBlock(blockInfo, newFile)
 
     user = consulRead('User', client['userId'])
     if user['files'] is None:
@@ -501,6 +512,7 @@ def invalidateShard(request, shardId):
 def addBlock(blockInfo, newFile):
     block = Block()
     block.offset = blockInfo["blockOffset"]
+    block.hash = blockInfo['hash']
     if isinstance(newFile, dict):
         block.fileId = newFile['id']
     else:
@@ -537,6 +549,7 @@ def addShard(shardInfo, block, shardIndex, clients):
     shard.offset = shardInfo["offset"]
     shard.size = int(shardInfo["size"])
     shard.clientId = clients[shardIndex]['id']
+    shard.hash = shardInfo['hash']
     if isinstance(block, dict):
         shard.blockId = block['id']
         shard.fileId = block['fileId']

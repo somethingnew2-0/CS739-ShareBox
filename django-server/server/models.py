@@ -15,11 +15,13 @@ class File(object):
     self.id = uuid.uuid4().hex
     self.name = None
     self.size = None
+    self.originalSize = None
     self.deltasize = 0 #This is used during file updates
     self.status = None
-    self.blocks = None
+    self.blocks = []
     self.clientId = None
     self.userId = None
+    self.hash = None
 
 class Block(object):
   def __init__(self):
@@ -28,7 +30,8 @@ class Block(object):
     self.offset = None
     self.shardCount = None
     self.onlineShards = None
-    self.shards = None
+    self.shards = []
+    self.hash = None
 
 class Shard(object):
   def __init__(self):
@@ -39,6 +42,7 @@ class Shard(object):
     self.blockId = None
     self.fileId = None
     self.status = None
+    self.hash = None
 
 class Client(object):
   def __init__(self):
@@ -53,4 +57,4 @@ class Client(object):
     self.systemSpace = None
     self.userReservedSpace = None
     self.systemReservedSpace = None
-    self.shards = None
+    self.shards = []
