@@ -3,7 +3,6 @@ package state
 import (
 	"fmt"
 	"log"
-	"net/url"
 	"strconv"
 
 	"client/keyvalue"
@@ -21,7 +20,7 @@ type Upload struct {
 }
 
 func (u Upload) Run(sm *StateMachine) {
-	resp, err := util.Post(fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), u.File)
+	resp, err := util.Post(sm.Options, fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), u.File)
 	if err != nil {
 		log.Println("Error adding file", err)
 		return
@@ -86,7 +85,7 @@ func (u Upload) Run(sm *StateMachine) {
 			}
 		}
 
-		resp, err := util.Post(fmt.Sprintf("file/%s/commit", file.Id), url.Values{"clientId": {sm.Options.ClientId}})
+		resp, err := util.Post(sm.Options, fmt.Sprintf("file/%s/commit", file.Id), map[string]string{"clientId": sm.Options.ClientId})
 		if err != nil {
 			log.Println("Error commiting file", err)
 			return
