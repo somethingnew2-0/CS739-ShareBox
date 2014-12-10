@@ -37,7 +37,7 @@ func (u Upload) Run(sm *StateMachine) {
 		for _, c := range clients {
 			client := c.(map[string]interface{})
 			blockId := client["blockId"]
-			offset := client["offset"].(int)
+			offset := int(client["offset"].(float64))
 			for _, block := range file.Blocks {
 				if block.Id == blockId {
 					shard := block.Shards[offset]
