@@ -528,7 +528,7 @@ def addBlock(blockInfo, newFile):
     block.shardCount = 0
     block.onlineShards = 0
     block.shards = []
-    clients = getShardClients(block.shards)
+    clients = getShardClients(blockInfo['shards'])
     addShardsToBlock(block, blockInfo['shards'], clients)
     consulWrite('Block', block)
     if isinstance(newFile, dict):
@@ -575,7 +575,7 @@ def addShard(shardInfo, block, shardIndex, clients):
     return shard.__dict__
 
 def updateShardClient(clientId, shardId):
-    shardClient = consulRead('Client', )
+    shardClient = consulRead('Client', clientId)
     if shardClient['shards'] is not None:
         shardClient['shards'].append(shardId)
     else:
@@ -626,7 +626,7 @@ def getOnlineClients():
 
 REPLICATION_FACTOR = 3
 def getConsulateSession():
-    #return consulate.Consulate('docker')
+    # return consulate.Consulate('docker')
     return consulate.Consulate()
 
 def consulWrite(root, obj):
