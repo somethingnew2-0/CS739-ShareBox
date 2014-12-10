@@ -62,7 +62,7 @@ func Post(o *settings.Options, address string, values interface{}) (map[string]i
 		return nil, err
 	}
 	// TODO: Remove this
-	ioutil.WriteFile("error", respJson, 0666)
+	ioutil.WriteFile("error.html", respJson, 0666)
 	respObj := map[string]interface{}{}
 	err = json.Unmarshal(respJson, &respObj)
 	if err != nil {

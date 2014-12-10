@@ -31,7 +31,9 @@ func (c Checksum) Run(sm *StateMachine) {
 			shardHash.Write(shard)
 			file.Blocks[i].Shards = append(file.Blocks[i].Shards, keyvalue.Shard{
 				Hash:   string(shardHash.Sum(nil)),
-				Offset: int64(s)})
+				Offset: int64(s),
+				Size:   int64(settings.ShardLength),
+			})
 		}
 	}
 
