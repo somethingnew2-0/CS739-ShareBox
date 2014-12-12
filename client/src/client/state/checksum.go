@@ -8,6 +8,7 @@ import (
 )
 
 type Checksum struct {
+	Create        bool
 	File          *keyvalue.File
 	EncodedBlocks [][]byte
 }
@@ -39,5 +40,9 @@ func (c Checksum) Run(sm *StateMachine) {
 
 	file.Hash = string(fileHash.Sum(nil))
 
-	sm.Add(&Upload{EncodedBlocks: c.EncodedBlocks, File: file})
+	if c.Create {
+		sm.Add(&Create{EncodedBlocks: c.EncodedBlocks, File: file})
+	} else {
+		sm.Add(&Update{EncodedBlocks: c.EncodedBlocks, File: file})
+	}
 }

@@ -10,7 +10,6 @@ import (
 	"client/keyvalue"
 	"client/settings"
 	"client/thrift/pool"
-	"client/thrift/replica"
 	"client/util"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -55,9 +54,8 @@ func (r Recover) Run(sm *StateMachine) {
 			}
 		}
 
-		transportPool := pool.NewTransportPool(thrift.NewTBufferedTransportFactory(10000))
-		defer transportPool.CloseAll()
-		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+		clientPool := pool.NewClientPool(thrift.NewTBufferedTransportFactory(10000), thrift.NewTBinaryProtocolFactoryDefault())
+		defer clientPool.CloseAll()
 
 		decode := &Decode{
 			File:          file,
@@ -67,14 +65,11 @@ func (r Recover) Run(sm *StateMachine) {
 
 		for b, block := range file.Blocks {
 			for _, shard := range block.Shards {
-				transport, err := transportPool.GetTransport(shard.IP)
+				client, err := clientPool.GetClient(shard.IP)
 				if err != nil {
 					log.Println("Error opening connection to ", shard.IP, err)
 					continue
 				}
-
-				client := replica.NewReplicatorClientFactory(transport, protocolFactory)
-				client.Ping()
 
 				replica, err := client.Download(shard.Id)
 				if err != nil {

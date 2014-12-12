@@ -9,6 +9,9 @@ const (
 	ClientTLS  = false
 	ClientPort = 12345
 
+	// Seconds to wait for create file to occur before updating it
+	UpdateTimeout = 60
+
 	ReplicasPath = "replicas"
 
 	MinimumWorkers = 8

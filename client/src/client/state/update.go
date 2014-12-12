@@ -1,8 +1,10 @@
 package state
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"log"
+	"time"
 
 	"client/keyvalue"
 	"client/settings"
@@ -13,13 +15,54 @@ import (
 	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
-type Upload struct {
+type Update struct {
 	EncodedBlocks [][]byte
 	File          *keyvalue.File
 }
 
-func (u Upload) Run(sm *StateMachine) {
-	resp, err := util.Post(sm.Options, fmt.Sprintf("client/%s/file/add", sm.Options.ClientId), u.File)
+func (u Update) Run(sm *StateMachine) {
+	f, err := sm.Files.GetFile(u.File.Id)
+
+	// Updates usually follow a Create.  Wait a bit for it to complete.
+	// If the Create never happens or takes too long to finish, we'll do it ourselves.
+	failures := 0
+	ticker := time.NewTicker(time.Second)
+	for err != nil {
+		// If we reach the timeout, just create the file instead
+		if failures > settings.UpdateTimeout {
+			sm.Add(&Create{EncodedBlocks: u.EncodedBlocks, File: u.File})
+			return
+		}
+		<-ticker.C
+		f, err = sm.Files.GetFile(u.File.Id)
+	}
+
+	if subtle.ConstantTimeCompare([]byte(u.File.Hash), []byte(f.Hash)) == 1 {
+		log.Println("No changes were actaully detected with file update")
+		return
+	}
+
+	u.File.Id = f.Id
+
+	for i, block := range u.File.Blocks {
+		if len(f.Blocks) < i {
+			u.File.Blocks[i].Id = f.Blocks[i].Id
+			if subtle.ConstantTimeCompare([]byte(block.Hash), []byte(f.Blocks[i].Hash)) == 1 {
+				// The block hasn't changed
+				// TODO: Delete this block from the posted JSON becuase it hasn't changed
+				continue
+			}
+			// The block has changed
+		}
+	}
+
+	// Check if the file shrunk
+	if len(u.File.Blocks) < len(f.Blocks) {
+		// TODO: Figure out what to do here
+		// Call block delete for discarded blocks?
+	}
+
+	resp, err := util.Post(sm.Options, fmt.Sprintf("client/%s/file/update", sm.Options.ClientId), u.File)
 	if err != nil {
 		log.Println("Error adding file", err)
 		return
@@ -48,20 +91,16 @@ func (u Upload) Run(sm *StateMachine) {
 			}
 		}
 
-		transportPool := pool.NewTransportPool(thrift.NewTBufferedTransportFactory(10000))
-		defer transportPool.CloseAll()
-		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+		clientPool := pool.NewClientPool(thrift.NewTBufferedTransportFactory(10000), thrift.NewTBinaryProtocolFactoryDefault())
+		defer clientPool.CloseAll()
 
 		for b, block := range file.Blocks {
 			for s, shard := range block.Shards {
-				transport, err := transportPool.GetTransport(shard.IP)
+				client, err := clientPool.GetClient(shard.IP)
 				if err != nil {
 					log.Println("Error opening connection to ", shard.IP, err)
 					continue
 				}
-
-				client := replica.NewReplicatorClientFactory(transport, protocolFactory)
-				client.Ping()
 
 				shardData := u.EncodedBlocks[b][s*settings.ShardLength : (s+1)*settings.ShardLength]
 				err = client.Add(&replica.Replica{

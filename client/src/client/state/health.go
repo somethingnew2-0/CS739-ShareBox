@@ -10,8 +10,7 @@ import (
 	"github.com/armon/consul-api"
 )
 
-type Health struct {
-}
+type Health struct{}
 
 func (h Health) Run(sm *StateMachine) {
 	config := consulapi.DefaultConfig()

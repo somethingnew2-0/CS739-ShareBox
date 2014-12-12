@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"client/thrift/pool"
-	"client/thrift/replica"
 	"client/util"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -32,22 +31,18 @@ func (r Remove) Run(sm *StateMachine) {
 		}
 	}
 
+	clientPool := pool.NewClientPool(thrift.NewTBufferedTransportFactory(10000), thrift.NewTBinaryProtocolFactoryDefault())
+	defer clientPool.CloseAll()
 	if resp["allowed"].(bool) {
 		shards := resp["clients"].([]interface{})
 		for _, s := range shards {
 			shard := s.(map[string]interface{})
-			transportPool := pool.NewTransportPool(thrift.NewTBufferedTransportFactory(10000))
-			defer transportPool.CloseAll()
-			protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
 			// TODO Validate this an IP address using net.IP
-			transport, err := transportPool.GetTransport(shard["IP"].(string))
+			client, err := clientPool.GetClient(shard["IP"].(string))
 			if err != nil {
 				log.Println("Error opening connection to ", shard["IP"].(string), err)
 				continue
 			}
-
-			client := replica.NewReplicatorClientFactory(transport, protocolFactory)
-			client.Ping()
 
 			err = client.Remove(shard["id"].(string))
 			if err != nil {

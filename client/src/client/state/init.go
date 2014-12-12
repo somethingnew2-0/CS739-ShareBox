@@ -45,7 +45,7 @@ func (i Init) Run(sm *StateMachine) {
 	if fresh {
 		err = filepath.Walk(sm.Options.Dir, func(path string, info os.FileInfo, err error) error {
 			if !info.IsDir() {
-				sm.Add(&Create{Path: path, Info: info})
+				sm.Add(&Read{Create: true, Path: path, Info: info})
 			}
 			return nil
 		})

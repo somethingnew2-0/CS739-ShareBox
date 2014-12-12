@@ -5,48 +5,57 @@ import (
 	"fmt"
 
 	"client/settings"
+	"client/thrift/replica"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
-type TransportPool struct {
-	transports       map[string]thrift.TTransport
+type ClientPool struct {
+	transports       []*thrift.TTransport
+	clients          map[string]*replica.ReplicatorClient
 	transportFactory thrift.TTransportFactory
+	protocolFactory  thrift.TProtocolFactory
 }
 
-func NewTransportPool(tf thrift.TTransportFactory) *TransportPool {
-	return &TransportPool{
-		transports:       make(map[string]thrift.TTransport),
+func NewClientPool(tf thrift.TTransportFactory, pf thrift.TProtocolFactory) *ClientPool {
+	return &ClientPool{
+		transports:       make([]*thrift.TTransport, 0),
+		clients:          make(map[string]*replica.ReplicatorClient),
 		transportFactory: tf,
+		protocolFactory:  pf,
 	}
 }
-func (tp TransportPool) GetTransport(ip string) (thrift.TTransport, error) {
-	transport := tp.transports[ip]
-	if transport == nil {
+func (tp ClientPool) GetClient(ip string) (*replica.ReplicatorClient, error) {
+	client := tp.clients[ip]
+	if client == nil {
 		addr := fmt.Sprintf("%s:%d", ip, settings.ClientPort)
 		var err error
+		var socket thrift.TTransport
 		if settings.ClientTLS {
 			cfg := new(tls.Config)
 			cfg.InsecureSkipVerify = true
-			transport, err = thrift.NewTSSLSocket(addr, cfg)
+			socket, err = thrift.NewTSSLSocket(addr, cfg)
 		} else {
-			transport, err = thrift.NewTSocket(addr)
+			socket, err = thrift.NewTSocket(addr)
 		}
 		if err != nil {
 			return nil, err
 		}
-		transport = tp.transportFactory.GetTransport(transport)
+		transport := tp.transportFactory.GetTransport(socket)
 		if err := transport.Open(); err != nil {
 			return nil, err
 		}
 		// TODO: Actually figure out caching later
-		// tp.transports[ip] = transport
+		tp.transports = append(tp.transports, &transport)
+		client := replica.NewReplicatorClientFactory(transport, tp.protocolFactory)
+		tp.clients[ip] = client
 	}
-	return transport, nil
+	client.Ping()
+	return client, nil
 }
 
-func (tp TransportPool) CloseAll() {
+func (tp ClientPool) CloseAll() {
 	for _, transport := range tp.transports {
-		transport.Close()
+		(*transport).Close()
 	}
 }
