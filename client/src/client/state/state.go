@@ -60,6 +60,7 @@ func (sm StateMachine) Run() {
 }
 
 func (sm StateMachine) Add(s State) {
+	log.Printf("State %T\n", s)
 	sm.states <- s
 }
 

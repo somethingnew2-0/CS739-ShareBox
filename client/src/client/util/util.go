@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"client/settings"
 )
 
 func Get(o *settings.Options, address string) (map[string]interface{}, error) {
+	log.Println("GET: ", address)
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s", settings.ServerAddress, address), nil)
 	if err != nil {
 		return nil, err
@@ -42,6 +44,7 @@ func Post(o *settings.Options, address string, values interface{}) (map[string]i
 	if err != nil {
 		return nil, err
 	}
+	log.Println("POST: ", address, string(jsonStr))
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", settings.ServerAddress, address), bytes.NewBuffer(jsonStr))
 	if err != nil {
@@ -61,11 +64,11 @@ func Post(o *settings.Options, address string, values interface{}) (map[string]i
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Remove this
-	ioutil.WriteFile("error.html", respJson, 0666)
 	respObj := map[string]interface{}{}
 	err = json.Unmarshal(respJson, &respObj)
 	if err != nil {
+		// TODO: Remove this
+		ioutil.WriteFile("error.html", respJson, 0666)
 		return nil, err
 	}
 	return respObj, nil

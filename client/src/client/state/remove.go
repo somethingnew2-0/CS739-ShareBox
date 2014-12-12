@@ -33,22 +33,23 @@ func (r Remove) Run(sm *StateMachine) {
 	}
 
 	if resp["allowed"].(bool) {
-		shards := resp["clients"].([]map[string]string)
-		for _, shard := range shards {
+		shards := resp["clients"].([]interface{})
+		for _, s := range shards {
+			shard := s.(map[string]interface{})
 			transportPool := pool.NewTransportPool(thrift.NewTBufferedTransportFactory(10000))
 			defer transportPool.CloseAll()
 			protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
 			// TODO Validate this an IP address using net.IP
-			transport, err := transportPool.GetTransport(shard["IP"])
+			transport, err := transportPool.GetTransport(shard["IP"].(string))
 			if err != nil {
-				log.Println("Error opening connection to ", shard["IP"], err)
+				log.Println("Error opening connection to ", shard["IP"].(string), err)
 				continue
 			}
 
 			client := replica.NewReplicatorClientFactory(transport, protocolFactory)
 			client.Ping()
 
-			err = client.Remove(shard["id"])
+			err = client.Remove(shard["id"].(string))
 			if err != nil {
 				log.Println("Error during remove", err)
 			}

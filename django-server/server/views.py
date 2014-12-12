@@ -333,7 +333,7 @@ def commitFile(request, fileId):
     authenticateRequest(request)
     newFile = consulRead('File', fileId)
     data = json.loads(request.body)
-    if newFile['status'] != 'added' or newFile['status'] != 'updated' or newFile['clientId'] != data['clientId']:
+    if newFile['status'] != 'added' and newFile['status'] != 'updated' and newFile['clientId'] != data['clientId']:
         return {
             'error' : 403,
             'message' : "File not available for commit",
@@ -488,7 +488,7 @@ def deleteFile(request, fileId):
     fileClient = consulRead('Client', delFile['clientId'])
     fileClient['userSpace'] = int(fileClient['userSpace']) + int(delFile['size'])
     consulWrite('Client', fileClient)
-    user = consulRead('File', delFile['userId'])
+    user = consulRead('User', delFile['userId'])
     user['files'].remove(delFile['id'])
     consulWrite('User', user)
     batchFreeSystemSpace(shardClients)

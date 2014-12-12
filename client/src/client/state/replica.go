@@ -126,7 +126,7 @@ func (rh ReplicaHandler) Modify(r *replica.Replica) error {
 		FileId:      r.FileId,
 		ClientId:    r.ClientId,
 	}
-	err = os.MkdirAll(path.Dir(getPath(replica.ShardId)), 0666)
+	err = os.MkdirAll(path.Dir(getPath(replica.ShardId)), 0777)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (rh ReplicaHandler) Remove(shardId string) error {
 		return err
 	}
 
-	resp, err := util.Post(rh.StateMachine.Options, fmt.Sprintf("block/%s/invalidate", r.ShardId), map[string]string{"receiverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
+	resp, err := util.Post(rh.StateMachine.Options, fmt.Sprintf("shard/%s/invalidate", r.ShardId), map[string]string{"receiverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
 	if err != nil {
 		return err
 	}
