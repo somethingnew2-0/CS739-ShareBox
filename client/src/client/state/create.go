@@ -5,12 +5,7 @@ import (
 	"log"
 
 	"client/keyvalue"
-	"client/settings"
-	"client/thrift/pool"
-	"client/thrift/replica"
 	"client/util"
-
-	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
 type Create struct {
@@ -47,49 +42,12 @@ func (u Create) Run(sm *StateMachine) {
 				}
 			}
 		}
-
-		clientPool := pool.NewClientPool(thrift.NewTBufferedTransportFactory(10000), thrift.NewTBinaryProtocolFactoryDefault())
-		defer clientPool.CloseAll()
-
-		for b, block := range file.Blocks {
-			for s, shard := range block.Shards {
-				client, err := clientPool.GetClient(shard.IP)
-				if err != nil {
-					log.Println("Error opening connection to ", shard.IP, err)
-					continue
-				}
-
-				shardData := u.EncodedBlocks[b][s*settings.ShardLength : (s+1)*settings.ShardLength]
-				err = client.Add(&replica.Replica{
-					Shard:       shardData,
-					ShardHash:   shard.Hash,
-					ShardOffset: int32(s),
-					ShardId:     shard.Id,
-					BlockId:     block.Id,
-					FileId:      file.Id,
-					ClientId:    sm.Options.ClientId,
-				})
-
-				if err != nil {
-					log.Println("Error during upload", err)
-				}
-			}
-		}
-
-		resp, err := util.Post(sm.Options, fmt.Sprintf("file/%s/commit", file.Id), map[string]string{"clientId": sm.Options.ClientId})
-		if err != nil {
-			log.Println("Error commiting file", err)
-			return
-		}
-
-		if resp["success"].(bool) {
-			sm.Files.SetFile(file.Name, file)
-		} else {
-			log.Println("Commiting file was unsuccessful", err)
-
-		}
+		sm.Add(&Upload{
+			EncodedBlocks: u.EncodedBlocks,
+			File:          file,
+		})
 	} else {
-		log.Println("File upload not allowed")
+		log.Println("File upload not allowed", u.File.Name)
 		return
 	}
 }

@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"client/thrift/pool"
+	"client/keyvalue"
 	"client/util"
-
-	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
 type Remove struct {
@@ -31,34 +29,33 @@ func (r Remove) Run(sm *StateMachine) {
 		}
 	}
 
-	clientPool := pool.NewClientPool(thrift.NewTBufferedTransportFactory(10000), thrift.NewTBinaryProtocolFactoryDefault())
-	defer clientPool.CloseAll()
 	if resp["allowed"].(bool) {
+		invalidate := make([]keyvalue.Shard, 0)
 		shards := resp["clients"].([]interface{})
 		for _, s := range shards {
 			shard := s.(map[string]interface{})
 			// TODO Validate this an IP address using net.IP
-			client, err := clientPool.GetClient(shard["IP"].(string))
-			if err != nil {
-				log.Println("Error opening connection to ", shard["IP"].(string), err)
-				continue
-			}
-
-			err = client.Remove(shard["id"].(string))
-			if err != nil {
-				log.Println("Error during remove", err)
-			}
+			invalidate = append(invalidate, keyvalue.Shard{
+				Id: shard["id"].(string),
+				IP: shard["IP"].(string),
+			})
 		}
 
-		if file != nil {
-			resp, err = util.Post(sm.Options, fmt.Sprintf("file/%s/delete", file.Id), map[string]string{"clientId": sm.Options.ClientId})
-			if err != nil {
-				log.Println("Error deleting file", err)
-				return
-			}
-			if !resp["success"].(bool) {
-				log.Println("Deleting file from server was unsucessful")
-			}
-		}
+		sm.Add(&Invalidate{
+			Shards: invalidate,
+			File:   file,
+			CallBack: func(i *Invalidate, sm *StateMachine) {
+				if i.File != nil {
+					resp, err = util.Post(sm.Options, fmt.Sprintf("file/%s/delete", i.File.Id), map[string]string{"clientId": sm.Options.ClientId})
+					if err != nil {
+						log.Println("Error deleting file", err)
+						return
+					}
+					if !resp["success"].(bool) {
+						log.Println("Deleting file from server was unsucessful")
+					}
+				}
+			},
+		})
 	}
 }

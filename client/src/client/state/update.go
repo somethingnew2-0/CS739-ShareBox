@@ -8,11 +8,7 @@ import (
 
 	"client/keyvalue"
 	"client/settings"
-	"client/thrift/pool"
-	"client/thrift/replica"
 	"client/util"
-
-	"git.apache.org/thrift.git/lib/go/thrift"
 )
 
 type Update struct {
@@ -51,7 +47,7 @@ func (u Update) Run(sm *StateMachine) {
 		Blocks:        make([]keyvalue.Block, 0),
 	}
 
-	invalidated := make([]keyvalue.Shard, 0)
+	invalidate := make([]keyvalue.Shard, 0)
 
 	for i, block := range u.File.Blocks {
 		if len(f.Blocks) < i {
@@ -61,21 +57,20 @@ func (u Update) Run(sm *StateMachine) {
 			}
 			// The block has changed
 			block.Id = f.Blocks[i].Id
-			invalidated = append(invalidated, f.Blocks[i].Shards...)
+			invalidate = append(invalidate, f.Blocks[i].Shards...)
 		}
 		updated.Blocks = append(updated.Blocks, block)
 	}
 
 	// Check if the file shrunk
 	if len(u.File.Blocks) < len(f.Blocks) {
-		// TODO: Figure out what to do here
 		// Call block delete for discarded blocks?
 		// Does the server automatically discard blocks based on file size?
 		// How do the replica client know this?
 
 		// Invalidate any blocks larger than the
 		for _, block := range f.Blocks[len(u.File.Blocks):] {
-			invalidated = append(invalidated, block.Shards...)
+			invalidate = append(invalidate, block.Shards...)
 		}
 	}
 
@@ -107,49 +102,17 @@ func (u Update) Run(sm *StateMachine) {
 				}
 			}
 		}
-
-		clientPool := pool.NewClientPool(thrift.NewTBufferedTransportFactory(10000), thrift.NewTBinaryProtocolFactoryDefault())
-		defer clientPool.CloseAll()
-
-		for b, block := range file.Blocks {
-			for s, shard := range block.Shards {
-				client, err := clientPool.GetClient(shard.IP)
-				if err != nil {
-					log.Println("Error opening connection to ", shard.IP, err)
-					continue
-				}
-
-				shardData := u.EncodedBlocks[b][s*settings.ShardLength : (s+1)*settings.ShardLength]
-				err = client.Add(&replica.Replica{
-					Shard:       shardData,
-					ShardHash:   shard.Hash,
-					ShardOffset: int32(s),
-					ShardId:     shard.Id,
-					BlockId:     block.Id,
-					FileId:      file.Id,
-					ClientId:    sm.Options.ClientId,
-				})
-
-				if err != nil {
-					log.Println("Error during upload", err)
-				}
-			}
-		}
-
-		resp, err := util.Post(sm.Options, fmt.Sprintf("file/%s/commit", file.Id), map[string]string{"clientId": sm.Options.ClientId})
-		if err != nil {
-			log.Println("Error commiting file", err)
-			return
-		}
-
-		if resp["success"].(bool) {
-			sm.Files.SetFile(file.Name, file)
-		} else {
-			log.Println("Commiting file was unsuccessful", err)
-
-		}
+		sm.Add(&Upload{
+			EncodedBlocks: u.EncodedBlocks,
+			File:          file,
+		})
+		sm.Add(&Invalidate{
+			Shards: invalidate,
+			// Not actually used
+			File: u.File,
+		})
 	} else {
-		log.Println("File upload not allowed")
+		log.Println("File upload not allowed", u.File.Name)
 		return
 	}
 }
