@@ -52,7 +52,7 @@ func (u Update) Run(sm *StateMachine) {
 	invalidate := make([]keyvalue.Shard, 0)
 
 	for i, block := range u.File.Blocks {
-		if len(f.Blocks) < i {
+		if len(f.Blocks) > i {
 			if subtle.ConstantTimeCompare([]byte(block.Hash), []byte(f.Blocks[i].Hash)) == 1 {
 				// The block hasn't changed
 				continue
