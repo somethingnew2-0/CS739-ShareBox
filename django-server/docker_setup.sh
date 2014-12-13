@@ -2,6 +2,7 @@ echo "Creating docker containers"
 echo "==========================="
 docker ps -a
 echo "==========================="
+docker rm `docker ps -a -q`
 docker run -d --name node1 -h node1 progrium/consul -server -bootstrap-expect 3
 JOIN_IP="$(docker inspect -f '{{.NetworkSettings.IPAddress}}' node1)"
 docker run -d --name node2 -h node2 progrium/consul -server -join $JOIN_IP
