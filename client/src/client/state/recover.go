@@ -47,7 +47,7 @@ func (r Recover) Run(sm *StateMachine) {
 				if block.Id == blockId {
 					shard := block.Shards[offset]
 					shard.Id = client["id"]
-					shard.Hash = client["Hash"]
+					shard.Hash = []byte(client["Hash"])
 					shard.IP = client["IP"]
 					break
 				}

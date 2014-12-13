@@ -47,7 +47,7 @@ func (tp ClientPool) GetClient(ip string) (*replica.ReplicatorClient, error) {
 		}
 		// TODO: Actually figure out caching later
 		tp.transports = append(tp.transports, &transport)
-		client := replica.NewReplicatorClientFactory(transport, tp.protocolFactory)
+		client = replica.NewReplicatorClientFactory(transport, tp.protocolFactory)
 		tp.clients[ip] = client
 	}
 	client.Ping()

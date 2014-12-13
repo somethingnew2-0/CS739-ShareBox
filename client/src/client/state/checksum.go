@@ -23,7 +23,7 @@ func (c Checksum) Run(sm *StateMachine) {
 		blockHash.Write(block)
 
 		file.Blocks = append(file.Blocks, keyvalue.Block{
-			Hash:        string(blockHash.Sum(nil)),
+			Hash:        blockHash.Sum(nil),
 			BlockOffset: int64(settings.BlockSize * i)})
 
 		for s := 0; s < settings.M; s++ {
@@ -31,14 +31,14 @@ func (c Checksum) Run(sm *StateMachine) {
 			shardHash := sha256.New()
 			shardHash.Write(shard)
 			file.Blocks[i].Shards = append(file.Blocks[i].Shards, keyvalue.Shard{
-				Hash:   string(shardHash.Sum(nil)),
+				Hash:   shardHash.Sum(nil),
 				Offset: int64(s),
 				Size:   int64(settings.ShardLength),
 			})
 		}
 	}
 
-	file.Hash = string(fileHash.Sum(nil))
+	file.Hash = fileHash.Sum(nil)
 
 	if c.Create {
 		sm.Add(&Create{EncodedBlocks: c.EncodedBlocks, File: file})

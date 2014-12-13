@@ -28,11 +28,11 @@ func (w Watch) Run(sm *StateMachine) {
 			switch event.Op {
 			case fsnotify.Create:
 				log.Println("Create file: ", event.Name)
-				// info, err := os.Stat(event.Name)
-				// if err != nil {
-				// 	log.Println("Error stating file: ", event.Name, err)
-				// }
-				// sm.Add(&Read{Create: true, Path: event.Name, Info: info})
+				info, err := os.Stat(event.Name)
+				if err != nil {
+					log.Println("Error stating file: ", event.Name, err)
+				}
+				sm.Add(&Read{Create: true, Path: event.Name, Info: info})
 			case fsnotify.Write:
 				log.Println("Write file: ", event.Name)
 				// TODO: This could be a race condition here

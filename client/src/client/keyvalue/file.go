@@ -7,7 +7,7 @@ import (
 
 type Shard struct {
 	Id     string `json:"id"`
-	Hash   string `json:"hash"`
+	Hash   []byte `json:"hash"`
 	Offset int64  `json:"offset"`
 	IP     string `json:"ip"`
 	Size   int64  `json:"size"`
@@ -15,7 +15,7 @@ type Shard struct {
 
 type Block struct {
 	Id          string  `json:"id"`
-	Hash        string  `json:"hash"`
+	Hash        []byte  `json:"hash"`
 	BlockOffset int64   `json:"blockOffset"`
 	Shards      []Shard `json:"shards"`
 }
@@ -23,7 +23,7 @@ type Block struct {
 type File struct {
 	Id            string  `json:"id"`
 	Name          string  `json:"name"`
-	Hash          string  `json:"hash"`
+	Hash          []byte  `json:"hash"`
 	EncodedSize   int64   `json:"size"`
 	UnencodedSize int64   `json:"originalSize"`
 	Blocks        []Block `json:"blocks"`

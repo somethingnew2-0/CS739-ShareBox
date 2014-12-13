@@ -18,7 +18,7 @@ var GoUnusedProtection__ int
 
 type Replica struct {
 	Shard       []byte `thrift:"shard,1"`
-	ShardHash   string `thrift:"shardHash,2"`
+	ShardHash   []byte `thrift:"shardHash,2"`
 	ShardOffset int32  `thrift:"shardOffset,3"`
 	ShardId     string `thrift:"shardId,4"`
 	BlockId     string `thrift:"blockId,5"`
@@ -96,7 +96,7 @@ func (p *Replica) readField1(iprot thrift.TProtocol) error {
 }
 
 func (p *Replica) readField2(iprot thrift.TProtocol) error {
-	if v, err := iprot.ReadString(); err != nil {
+	if v, err := iprot.ReadBinary(); err != nil {
 		return fmt.Errorf("error reading field 2: %s")
 	} else {
 		p.ShardHash = v
@@ -199,14 +199,16 @@ func (p *Replica) writeField1(oprot thrift.TProtocol) (err error) {
 }
 
 func (p *Replica) writeField2(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("shardHash", thrift.STRING, 2); err != nil {
-		return fmt.Errorf("%T write field begin error 2:shardHash: %s", p, err)
-	}
-	if err := oprot.WriteString(string(p.ShardHash)); err != nil {
-		return fmt.Errorf("%T.shardHash (2) field write error: %s", p)
-	}
-	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 2:shardHash: %s", p, err)
+	if p.ShardHash != nil {
+		if err := oprot.WriteFieldBegin("shardHash", thrift.BINARY, 2); err != nil {
+			return fmt.Errorf("%T write field begin error 2:shardHash: %s", p, err)
+		}
+		if err := oprot.WriteBinary(p.ShardHash); err != nil {
+			return fmt.Errorf("%T.shardHash (2) field write error: %s", p)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return fmt.Errorf("%T write field end error 2:shardHash: %s", p, err)
+		}
 	}
 	return err
 }

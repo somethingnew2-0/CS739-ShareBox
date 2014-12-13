@@ -17,22 +17,25 @@ type Update struct {
 }
 
 func (u Update) Run(sm *StateMachine) {
-	f, err := sm.Files.GetFile(u.File.Id)
+	f, err := sm.Files.GetFile(u.File.Name)
 
 	// Updates usually follow a Create.  Wait a bit for it to complete.
 	// If the Create never happens or takes too long to finish, we'll do it ourselves.
 	failures := 0
 	ticker := time.NewTicker(time.Second)
 	for err != nil {
+		failures++
+		log.Println("File not created yet trying again ", failures, u.File.Name)
 		// If we reach the timeout, just create the file instead
 		if failures > settings.UpdateTimeout {
 			sm.Add(&Create{EncodedBlocks: u.EncodedBlocks, File: u.File})
 			return
 		}
 		<-ticker.C
-		f, err = sm.Files.GetFile(u.File.Id)
+		f, err = sm.Files.GetFile(u.File.Name)
 	}
 
+	log.Println("File hashes", []byte(u.File.Hash), []byte(f.Hash))
 	if subtle.ConstantTimeCompare([]byte(u.File.Hash), []byte(f.Hash)) == 1 {
 		log.Println("No changes were actaully detected with file update")
 		return

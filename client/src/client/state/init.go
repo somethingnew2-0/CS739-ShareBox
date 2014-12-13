@@ -61,7 +61,7 @@ func (i Init) Run(sm *StateMachine) {
 		if resp["allowed"].(bool) {
 			files := resp["fileList"].([]map[string]string)
 			for _, file := range files {
-				sm.Add(Recover{File: &keyvalue.File{Id: file["id"], Name: file["name"], Hash: file["hash"]}})
+				sm.Add(Recover{File: &keyvalue.File{Id: file["id"], Name: file["name"], Hash: []byte(file["hash"])}})
 			}
 		}
 	}

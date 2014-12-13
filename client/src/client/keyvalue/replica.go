@@ -6,7 +6,7 @@ import (
 )
 
 type Replica struct {
-	ShardHash   string `json:"shardHash"`
+	ShardHash   []byte `json:"shardHash"`
 	ShardOffset int32  `json:"shardOffset"`
 	ShardId     string `json:"shardId"`
 	BlockId     string `json:"blockId"`

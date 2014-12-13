@@ -6,7 +6,7 @@ namespace perl replica
 
 struct Replica {
   1: binary shard,
-  2: string shardHash,
+  2: binary shardHash,
   3: i32 shardOffset,
   4: string shardId,
   5: string blockId,
