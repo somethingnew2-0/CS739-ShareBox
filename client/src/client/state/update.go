@@ -35,7 +35,6 @@ func (u Update) Run(sm *StateMachine) {
 		f, err = sm.Files.GetFile(u.File.Name)
 	}
 
-	log.Println("File hashes", []byte(u.File.Hash), []byte(f.Hash))
 	if subtle.ConstantTimeCompare([]byte(u.File.Hash), []byte(f.Hash)) == 1 {
 		log.Println("No changes were actaully detected with file update")
 		return
@@ -77,7 +76,7 @@ func (u Update) Run(sm *StateMachine) {
 		}
 	}
 
-	resp, err := util.Post(sm.Options, fmt.Sprintf("client/%s/file/update", sm.Options.ClientId), u.File)
+	resp, err := util.Post(sm.Options, fmt.Sprintf("client/%s/file/update", sm.Options.ClientId), updated)
 	if err != nil {
 		log.Println("Error adding file", err)
 		return
