@@ -20,9 +20,6 @@ type Replicator interface {
 	//  - R
 	Add(r *Replica) (err error)
 	// Parameters:
-	//  - R
-	Modify(r *Replica) (err error)
-	// Parameters:
 	//  - ShardId
 	Remove(shardId string) (err error)
 	// Parameters:
@@ -170,31 +167,31 @@ func (p *ReplicatorClient) recvAdd() (err error) {
 }
 
 // Parameters:
-//  - R
-func (p *ReplicatorClient) Modify(r *Replica) (err error) {
-	if err = p.sendModify(r); err != nil {
+//  - ShardId
+func (p *ReplicatorClient) Remove(shardId string) (err error) {
+	if err = p.sendRemove(shardId); err != nil {
 		return
 	}
-	return p.recvModify()
+	return p.recvRemove()
 }
 
-func (p *ReplicatorClient) sendModify(r *Replica) (err error) {
+func (p *ReplicatorClient) sendRemove(shardId string) (err error) {
 	oprot := p.OutputProtocol
 	if oprot == nil {
 		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
 		p.OutputProtocol = oprot
 	}
 	p.SeqId++
-	oprot.WriteMessageBegin("modify", thrift.CALL, p.SeqId)
-	args8 := NewModifyArgs()
-	args8.R = r
+	oprot.WriteMessageBegin("remove", thrift.CALL, p.SeqId)
+	args8 := NewRemoveArgs()
+	args8.ShardId = shardId
 	err = args8.Write(oprot)
 	oprot.WriteMessageEnd()
 	oprot.Flush()
 	return
 }
 
-func (p *ReplicatorClient) recvModify() (err error) {
+func (p *ReplicatorClient) recvRemove() (err error) {
 	iprot := p.InputProtocol
 	if iprot == nil {
 		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
@@ -221,7 +218,7 @@ func (p *ReplicatorClient) recvModify() (err error) {
 		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "ping failed: out of sequence response")
 		return
 	}
-	result9 := NewModifyResult()
+	result9 := NewRemoveResult()
 	err = result9.Read(iprot)
 	iprot.ReadMessageEnd()
 	return
@@ -229,22 +226,22 @@ func (p *ReplicatorClient) recvModify() (err error) {
 
 // Parameters:
 //  - ShardId
-func (p *ReplicatorClient) Remove(shardId string) (err error) {
-	if err = p.sendRemove(shardId); err != nil {
+func (p *ReplicatorClient) Download(shardId string) (r *Replica, err error) {
+	if err = p.sendDownload(shardId); err != nil {
 		return
 	}
-	return p.recvRemove()
+	return p.recvDownload()
 }
 
-func (p *ReplicatorClient) sendRemove(shardId string) (err error) {
+func (p *ReplicatorClient) sendDownload(shardId string) (err error) {
 	oprot := p.OutputProtocol
 	if oprot == nil {
 		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
 		p.OutputProtocol = oprot
 	}
 	p.SeqId++
-	oprot.WriteMessageBegin("remove", thrift.CALL, p.SeqId)
-	args12 := NewRemoveArgs()
+	oprot.WriteMessageBegin("download", thrift.CALL, p.SeqId)
+	args12 := NewDownloadArgs()
 	args12.ShardId = shardId
 	err = args12.Write(oprot)
 	oprot.WriteMessageEnd()
@@ -252,7 +249,7 @@ func (p *ReplicatorClient) sendRemove(shardId string) (err error) {
 	return
 }
 
-func (p *ReplicatorClient) recvRemove() (err error) {
+func (p *ReplicatorClient) recvDownload() (value *Replica, err error) {
 	iprot := p.InputProtocol
 	if iprot == nil {
 		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
@@ -279,68 +276,10 @@ func (p *ReplicatorClient) recvRemove() (err error) {
 		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "ping failed: out of sequence response")
 		return
 	}
-	result13 := NewRemoveResult()
+	result13 := NewDownloadResult()
 	err = result13.Read(iprot)
 	iprot.ReadMessageEnd()
-	return
-}
-
-// Parameters:
-//  - ShardId
-func (p *ReplicatorClient) Download(shardId string) (r *Replica, err error) {
-	if err = p.sendDownload(shardId); err != nil {
-		return
-	}
-	return p.recvDownload()
-}
-
-func (p *ReplicatorClient) sendDownload(shardId string) (err error) {
-	oprot := p.OutputProtocol
-	if oprot == nil {
-		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
-		p.OutputProtocol = oprot
-	}
-	p.SeqId++
-	oprot.WriteMessageBegin("download", thrift.CALL, p.SeqId)
-	args16 := NewDownloadArgs()
-	args16.ShardId = shardId
-	err = args16.Write(oprot)
-	oprot.WriteMessageEnd()
-	oprot.Flush()
-	return
-}
-
-func (p *ReplicatorClient) recvDownload() (value *Replica, err error) {
-	iprot := p.InputProtocol
-	if iprot == nil {
-		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
-		p.InputProtocol = iprot
-	}
-	_, mTypeId, seqId, err := iprot.ReadMessageBegin()
-	if err != nil {
-		return
-	}
-	if mTypeId == thrift.EXCEPTION {
-		error18 := thrift.NewTApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-		var error19 error
-		error19, err = error18.Read(iprot)
-		if err != nil {
-			return
-		}
-		if err = iprot.ReadMessageEnd(); err != nil {
-			return
-		}
-		err = error19
-		return
-	}
-	if p.SeqId != seqId {
-		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "ping failed: out of sequence response")
-		return
-	}
-	result17 := NewDownloadResult()
-	err = result17.Read(iprot)
-	iprot.ReadMessageEnd()
-	value = result17.Success
+	value = result13.Success
 	return
 }
 
@@ -364,13 +303,12 @@ func (p *ReplicatorProcessor) ProcessorMap() map[string]thrift.TProcessorFunctio
 
 func NewReplicatorProcessor(handler Replicator) *ReplicatorProcessor {
 
-	self20 := &ReplicatorProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
-	self20.processorMap["ping"] = &replicatorProcessorPing{handler: handler}
-	self20.processorMap["add"] = &replicatorProcessorAdd{handler: handler}
-	self20.processorMap["modify"] = &replicatorProcessorModify{handler: handler}
-	self20.processorMap["remove"] = &replicatorProcessorRemove{handler: handler}
-	self20.processorMap["download"] = &replicatorProcessorDownload{handler: handler}
-	return self20
+	self16 := &ReplicatorProcessor{handler: handler, processorMap: make(map[string]thrift.TProcessorFunction)}
+	self16.processorMap["ping"] = &replicatorProcessorPing{handler: handler}
+	self16.processorMap["add"] = &replicatorProcessorAdd{handler: handler}
+	self16.processorMap["remove"] = &replicatorProcessorRemove{handler: handler}
+	self16.processorMap["download"] = &replicatorProcessorDownload{handler: handler}
+	return self16
 }
 
 func (p *ReplicatorProcessor) Process(iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
@@ -383,12 +321,12 @@ func (p *ReplicatorProcessor) Process(iprot, oprot thrift.TProtocol) (success bo
 	}
 	iprot.Skip(thrift.STRUCT)
 	iprot.ReadMessageEnd()
-	x21 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
+	x17 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
 	oprot.WriteMessageBegin(name, thrift.EXCEPTION, seqId)
-	x21.Write(oprot)
+	x17.Write(oprot)
 	oprot.WriteMessageEnd()
 	oprot.Flush()
-	return false, x21
+	return false, x17
 
 }
 
@@ -461,49 +399,6 @@ func (p *replicatorProcessorAdd) Process(seqId int32, iprot, oprot thrift.TProto
 		return
 	}
 	if err2 := oprot.WriteMessageBegin("add", thrift.REPLY, seqId); err2 != nil {
-		err = err2
-	}
-	if err2 := result.Write(oprot); err == nil && err2 != nil {
-		err = err2
-	}
-	if err2 := oprot.WriteMessageEnd(); err == nil && err2 != nil {
-		err = err2
-	}
-	if err2 := oprot.Flush(); err == nil && err2 != nil {
-		err = err2
-	}
-	if err != nil {
-		return
-	}
-	return true, err
-}
-
-type replicatorProcessorModify struct {
-	handler Replicator
-}
-
-func (p *replicatorProcessorModify) Process(seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
-	args := NewModifyArgs()
-	if err = args.Read(iprot); err != nil {
-		iprot.ReadMessageEnd()
-		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
-		oprot.WriteMessageBegin("modify", thrift.EXCEPTION, seqId)
-		x.Write(oprot)
-		oprot.WriteMessageEnd()
-		oprot.Flush()
-		return
-	}
-	iprot.ReadMessageEnd()
-	result := NewModifyResult()
-	if err = p.handler.Modify(args.R); err != nil {
-		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing modify: "+err.Error())
-		oprot.WriteMessageBegin("modify", thrift.EXCEPTION, seqId)
-		x.Write(oprot)
-		oprot.WriteMessageEnd()
-		oprot.Flush()
-		return
-	}
-	if err2 := oprot.WriteMessageBegin("modify", thrift.REPLY, seqId); err2 != nil {
 		err = err2
 	}
 	if err2 := result.Write(oprot); err == nil && err2 != nil {
@@ -840,141 +735,6 @@ func (p *AddResult) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("AddResult(%+v)", *p)
-}
-
-type ModifyArgs struct {
-	R *Replica `thrift:"r,1"`
-}
-
-func NewModifyArgs() *ModifyArgs {
-	return &ModifyArgs{}
-}
-
-func (p *ModifyArgs) Read(iprot thrift.TProtocol) error {
-	if _, err := iprot.ReadStructBegin(); err != nil {
-		return fmt.Errorf("%T read error", p)
-	}
-	for {
-		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
-		if err != nil {
-			return fmt.Errorf("%T field %d read error: %s", p, fieldId, err)
-		}
-		if fieldTypeId == thrift.STOP {
-			break
-		}
-		switch fieldId {
-		case 1:
-			if err := p.readField1(iprot); err != nil {
-				return err
-			}
-		default:
-			if err := iprot.Skip(fieldTypeId); err != nil {
-				return err
-			}
-		}
-		if err := iprot.ReadFieldEnd(); err != nil {
-			return err
-		}
-	}
-	if err := iprot.ReadStructEnd(); err != nil {
-		return fmt.Errorf("%T read struct end error: %s", p, err)
-	}
-	return nil
-}
-
-func (p *ModifyArgs) readField1(iprot thrift.TProtocol) error {
-	p.R = NewReplica()
-	if err := p.R.Read(iprot); err != nil {
-		return fmt.Errorf("%T error reading struct: %s", p.R)
-	}
-	return nil
-}
-
-func (p *ModifyArgs) Write(oprot thrift.TProtocol) error {
-	if err := oprot.WriteStructBegin("modify_args"); err != nil {
-		return fmt.Errorf("%T write struct begin error: %s", p, err)
-	}
-	if err := p.writeField1(oprot); err != nil {
-		return err
-	}
-	if err := oprot.WriteFieldStop(); err != nil {
-		return fmt.Errorf("%T write field stop error: %s", err)
-	}
-	if err := oprot.WriteStructEnd(); err != nil {
-		return fmt.Errorf("%T write struct stop error: %s", err)
-	}
-	return nil
-}
-
-func (p *ModifyArgs) writeField1(oprot thrift.TProtocol) (err error) {
-	if p.R != nil {
-		if err := oprot.WriteFieldBegin("r", thrift.STRUCT, 1); err != nil {
-			return fmt.Errorf("%T write field begin error 1:r: %s", p, err)
-		}
-		if err := p.R.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", p.R)
-		}
-		if err := oprot.WriteFieldEnd(); err != nil {
-			return fmt.Errorf("%T write field end error 1:r: %s", p, err)
-		}
-	}
-	return err
-}
-
-func (p *ModifyArgs) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("ModifyArgs(%+v)", *p)
-}
-
-type ModifyResult struct {
-}
-
-func NewModifyResult() *ModifyResult {
-	return &ModifyResult{}
-}
-
-func (p *ModifyResult) Read(iprot thrift.TProtocol) error {
-	if _, err := iprot.ReadStructBegin(); err != nil {
-		return fmt.Errorf("%T read error", p)
-	}
-	for {
-		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
-		if err != nil {
-			return fmt.Errorf("%T field %d read error: %s", p, fieldId, err)
-		}
-		if fieldTypeId == thrift.STOP {
-			break
-		}
-		if err := iprot.ReadFieldEnd(); err != nil {
-			return err
-		}
-	}
-	if err := iprot.ReadStructEnd(); err != nil {
-		return fmt.Errorf("%T read struct end error: %s", p, err)
-	}
-	return nil
-}
-
-func (p *ModifyResult) Write(oprot thrift.TProtocol) error {
-	if err := oprot.WriteStructBegin("modify_result"); err != nil {
-		return fmt.Errorf("%T write struct begin error: %s", p, err)
-	}
-	if err := oprot.WriteFieldStop(); err != nil {
-		return fmt.Errorf("%T write field stop error: %s", err)
-	}
-	if err := oprot.WriteStructEnd(); err != nil {
-		return fmt.Errorf("%T write struct stop error: %s", err)
-	}
-	return nil
-}
-
-func (p *ModifyResult) String() string {
-	if p == nil {
-		return "<nil>"
-	}
-	return fmt.Sprintf("ModifyResult(%+v)", *p)
 }
 
 type RemoveArgs struct {

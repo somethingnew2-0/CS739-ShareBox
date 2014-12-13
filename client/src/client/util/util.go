@@ -34,6 +34,8 @@ func Get(o *settings.Options, address string) (map[string]interface{}, error) {
 	respObj := map[string]interface{}{}
 	err = json.Unmarshal(respJson, &respObj)
 	if err != nil {
+		// TODO: Remove this
+		ioutil.WriteFile("error.html", respJson, 0666)
 		return nil, err
 	}
 	return respObj, nil

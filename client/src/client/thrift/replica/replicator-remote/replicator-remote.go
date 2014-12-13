@@ -22,7 +22,6 @@ func Usage() {
 	fmt.Fprintln(os.Stderr, "\nFunctions:")
 	fmt.Fprintln(os.Stderr, "  void ping()")
 	fmt.Fprintln(os.Stderr, "  void add(Replica r)")
-	fmt.Fprintln(os.Stderr, "  void modify(Replica r)")
 	fmt.Fprintln(os.Stderr, "  void remove(string shardId)")
 	fmt.Fprintln(os.Stderr, "  Replica download(string shardId)")
 	fmt.Fprintln(os.Stderr)
@@ -132,49 +131,24 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Add requires 1 args")
 			flag.Usage()
 		}
-		arg22 := flag.Arg(1)
-		mbTrans23 := thrift.NewTMemoryBufferLen(len(arg22))
-		defer mbTrans23.Close()
-		_, err24 := mbTrans23.WriteString(arg22)
-		if err24 != nil {
+		arg18 := flag.Arg(1)
+		mbTrans19 := thrift.NewTMemoryBufferLen(len(arg18))
+		defer mbTrans19.Close()
+		_, err20 := mbTrans19.WriteString(arg18)
+		if err20 != nil {
 			Usage()
 			return
 		}
-		factory25 := thrift.NewTSimpleJSONProtocolFactory()
-		jsProt26 := factory25.GetProtocol(mbTrans23)
+		factory21 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt22 := factory21.GetProtocol(mbTrans19)
 		argvalue0 := replica.NewReplica()
-		err27 := argvalue0.Read(jsProt26)
-		if err27 != nil {
+		err23 := argvalue0.Read(jsProt22)
+		if err23 != nil {
 			Usage()
 			return
 		}
 		value0 := argvalue0
 		fmt.Print(client.Add(value0))
-		fmt.Print("\n")
-		break
-	case "modify":
-		if flag.NArg()-1 != 1 {
-			fmt.Fprintln(os.Stderr, "Modify requires 1 args")
-			flag.Usage()
-		}
-		arg28 := flag.Arg(1)
-		mbTrans29 := thrift.NewTMemoryBufferLen(len(arg28))
-		defer mbTrans29.Close()
-		_, err30 := mbTrans29.WriteString(arg28)
-		if err30 != nil {
-			Usage()
-			return
-		}
-		factory31 := thrift.NewTSimpleJSONProtocolFactory()
-		jsProt32 := factory31.GetProtocol(mbTrans29)
-		argvalue0 := replica.NewReplica()
-		err33 := argvalue0.Read(jsProt32)
-		if err33 != nil {
-			Usage()
-			return
-		}
-		value0 := argvalue0
-		fmt.Print(client.Modify(value0))
 		fmt.Print("\n")
 		break
 	case "remove":

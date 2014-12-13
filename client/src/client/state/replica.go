@@ -103,44 +103,6 @@ func (rh ReplicaHandler) Add(r *replica.Replica) error {
 	return nil
 }
 
-func (rh ReplicaHandler) Modify(r *replica.Replica) error {
-	resp, err := util.Post(rh.StateMachine.Options, fmt.Sprintf("shard/%s/validate", r.ShardId), map[string]string{"receiverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
-	if err != nil {
-		return err
-	}
-	if !resp["accept"].(bool) {
-		return errors.New("Adding this shard to the replica is not allowed")
-	}
-
-	shardHash := sha256.New()
-	shardHash.Write(r.Shard)
-	if subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(resp["hash"].(string))) == 0 || subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(r.ShardHash)) == 0 {
-		return errors.New("Shard didn't match shard hash")
-	}
-
-	replica := &keyvalue.Replica{
-		ShardHash:   r.ShardHash,
-		ShardOffset: r.ShardOffset,
-		ShardId:     r.ShardId,
-		BlockId:     r.BlockId,
-		FileId:      r.FileId,
-		ClientId:    r.ClientId,
-	}
-	err = os.MkdirAll(path.Dir(getPath(replica.ShardId)), 0777)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(getPath(replica.ShardId), r.Shard, 0666)
-	if err != nil {
-		return err
-	}
-	err = rh.StateMachine.Replicas.SetReplica(r.ShardId, replica)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (rh ReplicaHandler) Remove(shardId string) error {
 	r, err := rh.StateMachine.Replicas.GetReplica(shardId)
 	if err != nil {

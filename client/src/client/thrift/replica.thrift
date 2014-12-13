@@ -17,7 +17,6 @@ struct Replica {
 service Replicator {
    void ping(),
    void add(1:Replica r) 
-   void modify(1:Replica r) 
    void remove(1:string shardId) 
    Replica download(1:string shardId) 
 }

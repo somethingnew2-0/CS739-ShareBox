@@ -42,24 +42,41 @@ func (u Update) Run(sm *StateMachine) {
 		return
 	}
 
-	u.File.Id = f.Id
+	updated := &keyvalue.File{
+		Id:            f.Id,
+		Name:          u.File.Name,
+		Hash:          u.File.Hash,
+		EncodedSize:   u.File.EncodedSize,
+		UnencodedSize: u.File.UnencodedSize,
+		Blocks:        make([]keyvalue.Block, 0),
+	}
+
+	invalidated := make([]keyvalue.Shard, 0)
 
 	for i, block := range u.File.Blocks {
 		if len(f.Blocks) < i {
-			u.File.Blocks[i].Id = f.Blocks[i].Id
 			if subtle.ConstantTimeCompare([]byte(block.Hash), []byte(f.Blocks[i].Hash)) == 1 {
 				// The block hasn't changed
-				// TODO: Delete this block from the posted JSON becuase it hasn't changed
 				continue
 			}
 			// The block has changed
+			block.Id = f.Blocks[i].Id
+			invalidated = append(invalidated, f.Blocks[i].Shards...)
 		}
+		updated.Blocks = append(updated.Blocks, block)
 	}
 
 	// Check if the file shrunk
 	if len(u.File.Blocks) < len(f.Blocks) {
 		// TODO: Figure out what to do here
 		// Call block delete for discarded blocks?
+		// Does the server automatically discard blocks based on file size?
+		// How do the replica client know this?
+
+		// Invalidate any blocks larger than the
+		for _, block := range f.Blocks[len(u.File.Blocks):] {
+			invalidated = append(invalidated, block.Shards...)
+		}
 	}
 
 	resp, err := util.Post(sm.Options, fmt.Sprintf("client/%s/file/update", sm.Options.ClientId), u.File)
