@@ -3,6 +3,7 @@ package settings
 const (
 	ConsulAddress = "docker:8500"
 	ServerAddress = "http://localhost:8000"
+	// ServerAddress = "http://104.236.156.179"
 
 	ConfigFile = "config.json"
 

@@ -68,7 +68,11 @@ func (sm StateMachine) SpawnWorker() {
 	go func() {
 		atomic.AddUint32(&sm.workers, 1)
 		for state := range sm.states {
+			start := time.Now()
 			state.Run(&sm)
+			end := time.Now()
+
+			log.Printf("State %T ran in %s\n", state, end.Sub(start).String())
 
 			// Retire any workers over the threshold, once free
 			workers := atomic.LoadUint32(&sm.workers)
