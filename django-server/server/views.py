@@ -163,7 +163,7 @@ def get_client_ip(request):
 
 @csrf_exempt
 @require_POST
-@json_view
+# @json_view
 def addFile(request, clientId):
     authenticateRequest(request)
     client = consulRead('Client', clientId)
@@ -212,7 +212,7 @@ def addFile(request, clientId):
 
     if data['blocks'] is not None:
         for blockInfo in data['blocks']:
-            addBlock(blockInfo, newFile)
+            addBlock(clientId, blockInfo, newFile)
 
     user['files'][newFile.name] = newFile.id
     newFile.userId = user['id']
@@ -282,7 +282,7 @@ def updateFile(request, clientId):
         else:
             block = consulRead('Block', blockInfo['blockId'])
 
-        updatedBlocks.append(updateBlock(block, blockInfo, updateFile))
+        updatedBlocks.append(updateBlock(clientId, block, blockInfo, updateFile))
 
     returnInfo = {
         'allowed' : True,
@@ -299,7 +299,7 @@ def updateFile(request, clientId):
 
     return returnInfo
 
-def updateBlock(block, blockInfo, updateFile):
+def updateBlock(currentClientId, block, blockInfo, updateFile):
     newShardsInfo = []
     oldShardsInfo = []
     for shardInfo in blockInfo['shards']:
@@ -309,11 +309,11 @@ def updateBlock(block, blockInfo, updateFile):
             oldShard = consulRead('Shard', shardInfo['shardId'])
             oldShardsInfo.append(oldShard)
 
-    clients = getShardClients(newShardsInfo)
+    clients = getShardClients(currentClientId, newShardsInfo)
     newShards = addShardsToBlock(block, newShardsInfo, clients)
 
     offlineShards, onlineShards = shardsByStatus(oldShardsInfo)
-    clients = getShardClients(offlineShards)
+    clients = getShardClients(currentClientId, offlineShards)
     for i in range(0,len(offlineShards)):
         offlineShards[i]['clientId'] = clients[i]
         offlineShards[i]['status'] = 'online'
@@ -555,7 +555,7 @@ def invalidateShard(request, shardId):
         }
 
 # Helpers
-def addBlock(blockInfo, newFile):
+def addBlock(currentClientId, blockInfo, newFile):
     block = Block()
     block.offset = blockInfo["blockOffset"]
     block.hash = blockInfo['hash']
@@ -566,7 +566,7 @@ def addBlock(blockInfo, newFile):
     block.shardCount = 0
     block.onlineShards = 0
     block.shards = []
-    clients = getShardClients(blockInfo['shards'])
+    clients = getShardClients(currentClientId, blockInfo['shards'])
     addShardsToBlock(block, blockInfo['shards'], clients)
     consulWrite('Block', block)
     if isinstance(newFile, dict):
@@ -620,7 +620,7 @@ def updateShardClient(clientId, shardId):
         shardClient['shards'] = [shardId]
     consulWrite('Client', shardClient)
 
-def getShardClients(shards):
+def getShardClients(currentClientId, shards):
     #Greedy assignment of available online clients
     #Always fills one client before going to the next one
     onlineClients = getOnlineClients()
@@ -629,6 +629,8 @@ def getShardClients(shards):
     for shardInfo in shards:
         clientFound = False
         for clientId in onlineClients:
+            if clientId == currentClientId:
+                continue
             client = consulRead('Client', clientId)
             availableSystemSpace = int(client['systemSpace']) - int(client['systemReservedSpace'])
             if availableSystemSpace > int(shardInfo['size']):
