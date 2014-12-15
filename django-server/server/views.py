@@ -163,7 +163,7 @@ def get_client_ip(request):
 
 @csrf_exempt
 @require_POST
-# @json_view
+@json_view
 def addFile(request, clientId):
     authenticateRequest(request)
     client = consulRead('Client', clientId)
