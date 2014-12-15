@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"log"
-	"strconv"
 
 	"client/keyvalue"
 	"client/settings"
@@ -31,28 +30,26 @@ func (r Recover) Run(sm *StateMachine) {
 		return
 	}
 	if resp["allowed"].(bool) {
-		file.EncodedSize = resp["size"].(int64)
-		file.UnencodedSize = resp["actualSize"].(int64)
+		file.EncodedSize = int64(resp["size"].(float64))
+		file.UnencodedSize = int64(resp["originalSize"].(float64))
 
-		blockIds := resp["blocks"].([]string)
-		for _, blockId := range blockIds {
+		blockIds := resp["blocks"].([]interface{})
+		for _, bId := range blockIds {
+			blockId := bId.(string)
 			file.Blocks = append(file.Blocks, keyvalue.Block{Id: blockId, Shards: make([]keyvalue.Shard, settings.M)})
 		}
 
-		clients := resp["clients"].([]map[string]string)
-		for _, client := range clients {
-			blockId := client["blockId"]
-			offset, err := strconv.ParseInt(client["offset"], 10, 64)
-			if err != nil {
-				log.Println("Cannot parse shard offset", err)
-				break
-			}
+		clients := resp["clients"].([]interface{})
+		for _, c := range clients {
+			client := c.(map[string]interface{})
+			blockId := client["blockId"].(string)
+			offset := int(client["offset"].(float64))
 			for _, block := range file.Blocks {
 				if block.Id == blockId {
 					shard := block.Shards[offset]
-					shard.Id = client["id"]
-					shard.Hash = []byte(client["Hash"])
-					shard.IP = client["IP"]
+					shard.Id = client["id"].(string)
+					shard.Hash = []byte(client["hash"].(string))
+					shard.IP = client["IP"].(string)
 					break
 				}
 			}

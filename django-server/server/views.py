@@ -459,7 +459,7 @@ def downloadFile(request, fileId):
     data = json.loads(request.body)
     client = consulRead('Client', data['clientId'])
 
-    if dlFile['clientId'] != client['id'] or dlFile['status'] != 'committed':
+    if dlFile['clientId'] != client['id'] and dlFile['status'] != 'committed':
         return {
             'allowed' : False
         }
@@ -476,13 +476,17 @@ def downloadFile(request, fileId):
                 'id' : shard['id'],
                 'blockId': shard['blockId'],
                 'offset' : shard['offset'],
+                'hash': shard['hash'],
                 'IP' : client['ip']
             })
 
     return {
         'allowed' : True,
+        'blocks': dlFile['blocks'],
         'shards' : shardCount,
-        'clients' : clients
+        'clients' : clients,
+        'size': dlFile['size'],
+        'originalSize': dlFile['originalSize']
     }
 
 @csrf_exempt
