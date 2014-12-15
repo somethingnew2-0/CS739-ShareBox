@@ -21,10 +21,18 @@ func (r Remove) Run(sm *StateMachine) {
 			log.Println("Error removing file", err)
 			return
 		}
+		if resp["error"] != nil {
+			log.Println("Error removing file ", resp["error"], " ", resp["message"])
+			return
+		}
 	} else {
 		resp, err = util.Post(sm.Options, fmt.Sprintf("client/%s/file/remove", sm.Options.ClientId), map[string]string{"name": r.Path})
 		if err != nil {
 			log.Println("Error removing file", err)
+			return
+		}
+		if resp["error"] != nil {
+			log.Println("Error removing file ", resp["error"], " ", resp["message"])
 			return
 		}
 	}
@@ -49,6 +57,10 @@ func (r Remove) Run(sm *StateMachine) {
 					resp, err = util.Post(sm.Options, fmt.Sprintf("file/%s/delete", i.File.Id), map[string]string{"clientId": sm.Options.ClientId})
 					if err != nil {
 						log.Println("Error deleting file", err)
+						return
+					}
+					if resp["error"] != nil {
+						log.Println("Error deleting file ", resp["error"], " ", resp["message"])
 						return
 					}
 					if !resp["success"].(bool) {

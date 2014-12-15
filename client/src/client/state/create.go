@@ -19,6 +19,10 @@ func (u Create) Run(sm *StateMachine) {
 		log.Println("Error adding file", err)
 		return
 	}
+	if resp["error"] != nil {
+		log.Println("Error adding file ", resp["error"], " ", resp["message"])
+		return
+	}
 
 	if resp["allowed"].(bool) {
 		file := u.File

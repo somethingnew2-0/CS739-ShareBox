@@ -78,7 +78,11 @@ func (u Update) Run(sm *StateMachine) {
 
 	resp, err := util.Post(sm.Options, fmt.Sprintf("client/%s/file/update", sm.Options.ClientId), updated)
 	if err != nil {
-		log.Println("Error adding file", err)
+		log.Println("Error updating file", err)
+		return
+	}
+	if resp["error"] != nil {
+		log.Println("Error updating file ", resp["error"], " ", resp["message"])
 		return
 	}
 

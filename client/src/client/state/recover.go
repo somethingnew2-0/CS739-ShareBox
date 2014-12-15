@@ -26,6 +26,10 @@ func (r Recover) Run(sm *StateMachine) {
 		log.Println("Unable to connect to server to recover a file: ", err)
 		return
 	}
+	if resp["error"] != nil {
+		log.Println("Error recovering a file ", resp["error"], " ", resp["message"])
+		return
+	}
 	if resp["allowed"].(bool) {
 		file.EncodedSize = resp["size"].(int64)
 		file.UnencodedSize = resp["actualSize"].(int64)

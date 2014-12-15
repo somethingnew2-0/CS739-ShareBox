@@ -66,6 +66,9 @@ func (rh ReplicaHandler) Add(r *replica.Replica) error {
 	if err != nil {
 		return err
 	}
+	if resp["error"] != nil {
+		return errors.New("Error validating shard ", resp["error"], " ", resp["message"])
+	}
 	if !resp["accept"].(bool) {
 		return errors.New("Adding this shard to the replica is not allowed")
 	}
@@ -112,6 +115,9 @@ func (rh ReplicaHandler) Remove(shardId string) error {
 	resp, err := util.Post(rh.StateMachine.Options, fmt.Sprintf("shard/%s/invalidate", r.ShardId), map[string]string{"receiverId": rh.StateMachine.Options.ClientId, "ownerId": r.ClientId})
 	if err != nil {
 		return err
+	}
+	if resp["error"] != nil {
+		return errors.New("Error invalidating shard ", resp["error"], " ", resp["message"])
 	}
 	if !resp["delete"].(bool) {
 		return errors.New("Deleting this shard to the replica is not allowed")

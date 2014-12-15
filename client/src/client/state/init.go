@@ -21,6 +21,9 @@ func (i Init) Run(sm *StateMachine) {
 		if err != nil {
 			log.Fatal("Couldn't connect and create new user with server: ", err)
 		}
+		if resp["error"] != nil {
+			log.Fatal("Error connecting to server and creating a new user ", resp["error"], " ", resp["message"])
+		}
 		userResp := resp["user"].(map[string]interface{})
 		sm.Options.UserId = userResp["id"].(string)
 		sm.Options.ClientId = userResp["clientId"].(string)
@@ -33,12 +36,19 @@ func (i Init) Run(sm *StateMachine) {
 		if err != nil {
 			log.Fatal("Couldn't init client with server: ", err)
 		}
+		if resp["error"] != nil {
+			log.Fatal("Error initing client with server ", resp["error"], " ", resp["message"])
+		}
 	}
 
 	resp, err := util.Get(sm.Options, fmt.Sprintf("client/%s/status", sm.Options.ClientId))
 	if err != nil {
 		log.Fatal("Couldn't get status of client from server: ", err)
 	}
+	if resp["error"] != nil {
+		log.Fatal("Error getting status of client ", resp["error"], " ", resp["message"])
+	}
+	log.Println(resp)
 	fresh := resp["new"].(bool)
 	recovery := resp["recovery"].(bool)
 
@@ -57,6 +67,9 @@ func (i Init) Run(sm *StateMachine) {
 		resp, err = util.Get(sm.Options, fmt.Sprintf("client/%s/recover", sm.Options.ClientId))
 		if err != nil {
 			log.Fatal("Unable to connect to server to recover files: ", err)
+		}
+		if resp["error"] != nil {
+			log.Fatal("Error attempting to recover files ", resp["error"], " ", resp["message"])
 		}
 		if resp["allowed"].(bool) {
 			files := resp["fileList"].([]map[string]string)

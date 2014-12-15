@@ -51,6 +51,10 @@ func (u Upload) Run(sm *StateMachine) {
 		log.Println("Error commiting file", err)
 		return
 	}
+	if resp["error"] != nil {
+		log.Println("Error commitingfile ", resp["error"], " ", resp["message"])
+		return
+	}
 
 	if resp["success"].(bool) {
 		sm.Files.SetFile(u.File.Name, u.File)
