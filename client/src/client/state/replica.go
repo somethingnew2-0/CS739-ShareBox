@@ -44,7 +44,6 @@ func (r Replica) Run(sm *StateMachine) {
 		log.Println("Could not start replica server on client", err)
 		return
 	}
-	fmt.Printf("%T\n", transport)
 	handler := &ReplicaHandler{StateMachine: sm}
 	processor := replica.NewReplicatorProcessor(handler)
 	server := thrift.NewTSimpleServer4(processor, transport, transportFactory, protocolFactory)
