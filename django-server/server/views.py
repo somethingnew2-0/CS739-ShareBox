@@ -106,9 +106,14 @@ def recoverClient(request, clientId):
     if user['files'] is None:
         user['files'] = {}
 
+    files = []
+    for fileId in user['files'].values():
+        userFile = consulRead('File', fileId)
+        files.append({'id': fileId, 'name': userFile['name'], 'hash': userFile['hash']})
+
     return {
         'allowed' : True,
-        'fileList' : user['files'].values()
+        'fileList' : files
     }
 
 def get_client_ip(request):
@@ -181,7 +186,7 @@ def addFile(request, clientId):
         user['files'] = {}
 
     # Check if file was already added
-    if user['files'][data['name']]:
+    if user['files'].has_key(data['name']):
         fileId = user['files'][data['name']]
         oldFile = consulRead('File', fileId)
         if oldFile['hash'] == data['hash']:

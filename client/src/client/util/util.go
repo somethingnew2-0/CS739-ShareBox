@@ -46,7 +46,8 @@ func Post(o *settings.Options, address string, values interface{}) (map[string]i
 	if err != nil {
 		return nil, err
 	}
-	log.Println("POST: ", address, string(jsonStr))
+	// log.Println("POST: ", address, string(jsonStr))
+	log.Println("POST: ", address)
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", settings.ServerAddress, address), bytes.NewBuffer(jsonStr))
 	if err != nil {
