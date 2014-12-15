@@ -48,7 +48,6 @@ func (i Init) Run(sm *StateMachine) {
 	if resp["error"] != nil {
 		log.Fatal("Error getting status of client ", resp["error"], " ", resp["message"])
 	}
-	log.Println(resp)
 	fresh := resp["new"].(bool)
 	recovery := resp["recovery"].(bool)
 
@@ -72,8 +71,9 @@ func (i Init) Run(sm *StateMachine) {
 			log.Fatal("Error attempting to recover files ", resp["error"], " ", resp["message"])
 		}
 		if resp["allowed"].(bool) {
-			files := resp["fileList"].([]map[string]string)
-			for _, file := range files {
+			files := resp["fileList"].([]interface{})
+			for _, f := range files {
+				file := f.(map[string]string)
 				sm.Add(Recover{File: &keyvalue.File{Id: file["id"], Name: file["name"], Hash: []byte(file["hash"])}})
 			}
 		}

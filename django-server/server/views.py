@@ -10,6 +10,7 @@ import json
 from models import *
 from random import shuffle
 import uuid
+from sharebox.settings import *
 
 # Create your views here.
 @csrf_exempt
@@ -97,14 +98,17 @@ def getClientInitStatus(request, clientId):
 def recoverClient(request, clientId):
     authenticateRequest(request)
     client = consulRead('Client', clientId)
-    if client['initStatus'] != 'recover': #TODO: Add security checks
+    if client['initStatus'] != 'recovery': #TODO: Add security checks
         return {
             'allowed' : False
         }
     user = consulRead('User', client['userId'])
+    if user['files'] is None:
+        user['files'] = {}
+
     return {
         'allowed' : True,
-        'fileList' : user['files']
+        'fileList' : user['files'].values()
     }
 
 def get_client_ip(request):
@@ -171,6 +175,26 @@ def addFile(request, clientId):
 
 
     consulWrite('Client', client)
+    
+    user = consulRead('User', client['userId'])
+    if user['files'] is None:
+        user['files'] = {}
+
+    # Check if file was already added
+    if user['files'][data['name']]:
+        fileId = user['files'][data['name']]
+        oldFile = consulRead('File', fileId)
+        if oldFile['hash'] == data['hash']:
+            return {
+                'allowed' : False,
+                'message' : 'File of the same hash already exists',
+                'error' : 403
+            }
+        return {
+            'allowed' : False,
+            'message' : 'File of the same name already exists',
+            'error' : 403
+        }
 
     newFile = File()
     newFile.name = str(data['name'])
@@ -185,10 +209,7 @@ def addFile(request, clientId):
         for blockInfo in data['blocks']:
             addBlock(blockInfo, newFile)
 
-    user = consulRead('User', client['userId'])
-    if user['files'] is None:
-        user['files'] = []
-    user['files'].append(newFile.id)
+    user['files'][newFile.name] = newFile.id
     newFile.userId = user['id']
     consulWrite('User', user)
     consulWrite('File', newFile)
@@ -489,7 +510,7 @@ def deleteFile(request, fileId):
     fileClient['userSpace'] = int(fileClient['userSpace']) + int(delFile['size'])
     consulWrite('Client', fileClient)
     user = consulRead('User', delFile['userId'])
-    user['files'].remove(delFile['id'])
+    delete(user['files'][delFile['name']])
     consulWrite('User', user)
     batchFreeSystemSpace(shardClients)
     consulDelete('File', delFile['id'])
@@ -634,8 +655,7 @@ def getOnlineClients():
 
 REPLICATION_FACTOR = 3
 def getConsulateSession():
-    # return consulate.Consulate('docker')
-    return consulate.Consulate()
+    return consulate.Consulate(CONSUL_URL)
 
 def consulWrite(root, obj):
     s = getConsulateSession()
