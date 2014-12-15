@@ -35,7 +35,7 @@ func (u Update) Run(sm *StateMachine) {
 		f, err = sm.Files.GetFile(u.File.Name)
 	}
 
-	if subtle.ConstantTimeCompare([]byte(u.File.Hash), []byte(f.Hash)) == 1 {
+	if len(u.File.Hash) == len(f.Hash) && subtle.ConstantTimeCompare(u.File.Hash, f.Hash) == 1 {
 		log.Println("No changes were actaully detected with file update")
 		return
 	}
@@ -53,7 +53,7 @@ func (u Update) Run(sm *StateMachine) {
 
 	for i, block := range u.File.Blocks {
 		if len(f.Blocks) > i {
-			if subtle.ConstantTimeCompare([]byte(block.Hash), []byte(f.Blocks[i].Hash)) == 1 {
+			if len(block.Hash) == len(f.Blocks[i].Hash) && subtle.ConstantTimeCompare(block.Hash, f.Blocks[i].Hash) == 1 {
 				// The block hasn't changed
 				continue
 			}
@@ -112,11 +112,12 @@ func (u Update) Run(sm *StateMachine) {
 			EncodedBlocks: u.EncodedBlocks,
 			File:          file,
 		})
-		sm.Add(&Invalidate{
-			Shards: invalidate,
-			// Not actually used
-			File: u.File,
-		})
+		// TODO: Reenable once the server allows it
+		// sm.Add(&Invalidate{
+		// 	Shards: invalidate,
+		// 	// Not actually used
+		// 	File: u.File,
+		// })
 	} else {
 		log.Println("File upload not allowed", u.File.Name)
 		return

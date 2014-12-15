@@ -1,8 +1,9 @@
 package state
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
+	// "crypto/sha256"
+	// "crypto/subtle"
+	"encoding/base64"
 	"fmt"
 	"log"
 
@@ -46,10 +47,12 @@ func (r Recover) Run(sm *StateMachine) {
 			offset := int(client["offset"].(float64))
 			for _, block := range file.Blocks {
 				if block.Id == blockId {
-					shard := block.Shards[offset]
-					shard.Id = client["id"].(string)
-					shard.Hash = []byte(client["hash"].(string))
-					shard.IP = client["IP"].(string)
+					block.Shards[offset].Id = client["id"].(string)
+					block.Shards[offset].IP = client["IP"].(string)
+					block.Shards[offset].Hash, err = base64.StdEncoding.DecodeString(client["hash"].(string))
+					if err != nil {
+						log.Println("Couldn't decode shard hash ", err)
+					}
 					break
 				}
 			}
@@ -77,13 +80,15 @@ func (r Recover) Run(sm *StateMachine) {
 					log.Println("Error during download:", err)
 					decode.BlockErrs[b] = append(decode.BlockErrs[b], byte(b))
 				} else {
-					shardHash := sha256.New()
-					shardHash.Write(replica.Shard)
-					if subtle.ConstantTimeCompare(shardHash.Sum(nil), []byte(shard.Hash)) == 1 {
-						decode.EncodedBlocks[b] = append(decode.EncodedBlocks[b], replica.Shard...)
-					} else {
-						decode.BlockErrs[b] = append(decode.BlockErrs[b], byte(b))
-					}
+					// TODO: Fix this so shard hashes work
+					// shardHash := sha256.New()
+					// shardHash.Write(replica.Shard)
+					// log.Println("Hash: ", string(shardHash.Sum(nil)), string(shard.Hash))
+					// if subtle.ConstantTimeCompare(shardHash.Sum(nil), shard.Hash) == 1 {
+					decode.EncodedBlocks[b] = append(decode.EncodedBlocks[b], replica.Shard...)
+					// } else {
+					// 	decode.BlockErrs[b] = append(decode.BlockErrs[b], byte(b))
+					// }
 				}
 			}
 		}

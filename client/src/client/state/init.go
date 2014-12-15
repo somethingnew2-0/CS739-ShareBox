@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os"
@@ -74,7 +75,14 @@ func (i Init) Run(sm *StateMachine) {
 			files := resp["fileList"].([]interface{})
 			for _, f := range files {
 				file := f.(map[string]interface{})
-				sm.Add(Recover{File: &keyvalue.File{Id: file["id"].(string), Name: file["name"].(string), Hash: []byte(file["hash"].(string))}})
+				hash, err := base64.StdEncoding.DecodeString(file["hash"].(string))
+				if err != nil {
+					log.Println("Couldn't decode hash ", err)
+					continue
+				}
+				// sm.Add(Recover{File: &keyvalue.File{Id: file["id"].(string), Name: file["name"].(string), Hash: []byte(file["hash"].(string))}})
+				// log.Println("Hash from server ", string(hash))
+				sm.Add(Recover{File: &keyvalue.File{Id: file["id"].(string), Name: file["name"].(string), Hash: hash}})
 			}
 		}
 	}

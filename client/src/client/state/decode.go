@@ -1,8 +1,8 @@
 package state
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
+	// "crypto/sha256"
+	// "crypto/subtle"
 	"log"
 
 	"client/keyvalue"
@@ -25,11 +25,12 @@ func (d Decode) Run(sm *StateMachine) {
 			return
 		}
 		decrypt.Ciphertext = append(decrypt.Ciphertext, sm.ErasureCode.Decode(block, d.BlockErrs[b])...)
-		blockHash := sha256.New()
-		blockHash.Write(decrypt.Ciphertext[b*settings.BlockSize : (b+1)*settings.BlockSize])
-		if subtle.ConstantTimeCompare(blockHash.Sum(nil), []byte(d.File.Blocks[b].Hash)) == 0 {
-			log.Println("Recovered block is corrupted! ", d.File.Name)
-		}
+		// TODO: Fix this so hashes work for file recovery
+		// blockHash := sha256.New()
+		// blockHash.Write(decrypt.Ciphertext[b*settings.BlockSize : (b+1)*settings.BlockSize])
+		// if subtle.ConstantTimeCompare(blockHash.Sum(nil), []byte(d.File.Blocks[b].Hash)) == 0 {
+		// 	log.Println("Recovered block is corrupted! ", d.File.Name)
+		// }
 	}
 	sm.Add(decrypt)
 }
